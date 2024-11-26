@@ -16,6 +16,20 @@ using Ninject;
 
 namespace JabbR.Nancy
 {
+    public class ClaimsPrincipalUserIdentity : IUserIdentity
+    {
+        private readonly ClaimsPrincipal _principal;
+
+        public ClaimsPrincipalUserIdentity(ClaimsPrincipal principal)
+        {
+            _principal = principal;
+        }
+
+        public string UserName => _principal.Identity.Name;
+
+        public IEnumerable<string> Claims => _principal.Claims.Select(c => c.Value);
+    }
+
     public class JabbRNinjectNancyBootstrapper : NinjectNancyBootstrapper
     {
         private readonly IKernel _kernel;
