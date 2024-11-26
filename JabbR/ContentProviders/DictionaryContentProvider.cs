@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading.Tasks;
 using HtmlAgilityPack;
 using JabbR.ContentProviders.Core;
@@ -17,16 +17,14 @@ namespace JabbR.ContentProviders
                                                        "    <div>{1}</div>" +
                                                        "</div>";
 
-        protected override Task<ContentProviderResult> GetCollapsibleContent(ContentProviderHttpRequest request)
+        protected override async Task<ContentProviderResult> GetCollapsibleContent(ContentProviderHttpRequest request)
         {
-            return ExtractFromResponse(request).Then(pageInfo =>
+            var pageInfo = await ExtractFromResponse(request);
+            return new ContentProviderResult
             {
-                return new ContentProviderResult
-                {
-                    Content = String.Format(ContentFormat, pageInfo.Title, pageInfo.WordDefinition, pageInfo.ImageURL),
-                    Title = pageInfo.Title
-                };
-            });
+                Content = String.Format(ContentFormat, pageInfo.Title, pageInfo.WordDefinition, pageInfo.ImageURL),
+                Title = pageInfo.Title
+            };
         }
 
         public override bool IsValidContent(Uri uri)
@@ -35,12 +33,12 @@ namespace JabbR.ContentProviders
                    uri.AbsoluteUri.StartsWith("http://dictionary.com", StringComparison.OrdinalIgnoreCase);
         }
 
-        private Task<PageInfo> ExtractFromResponse(ContentProviderHttpRequest request)
+        private async Task<PageInfo> ExtractFromResponse(ContentProviderHttpRequest request)
         {
-            return Http.GetAsync(request.RequestUri).Then(response =>
+using (var response = await Http.GetAsync(request.RequestUri))
             {
                 var pageInfo = new PageInfo();
-                using (var responseStream = response.GetResponseStream())
+using (var responseStream = await response.Content.ReadAsStreamAsync())
                 {
                     var htmlDocument = new HtmlDocument();
                     htmlDocument.Load(responseStream);
@@ -53,7 +51,7 @@ namespace JabbR.ContentProviders
                 }
 
                 return pageInfo;
-            });
+            }
         }
 
         private string GetWordDefinition(HtmlDocument htmlDocument)
