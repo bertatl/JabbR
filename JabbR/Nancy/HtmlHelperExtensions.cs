@@ -150,9 +150,10 @@ namespace JabbR
 
         public static string RequestQuery(this IHtmlHelper htmlHelper)
         {
-            if (htmlHelper.RenderContext.Context.Request.Url != null && !String.IsNullOrEmpty(htmlHelper.RenderContext.Context.Request.Url.Query))
+            var request = htmlHelper.ViewContext.HttpContext.Request;
+            if (request.QueryString.HasValue)
             {
-                return "?" + htmlHelper.RenderContext.Context.Request.Url.Query;
+                return request.QueryString.Value;
             }
 
             return String.Empty;
