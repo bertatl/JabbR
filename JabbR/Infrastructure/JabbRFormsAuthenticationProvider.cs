@@ -63,12 +63,12 @@ namespace JabbR.Infrastructure
                 Success = true
             };
 
-            ChatUser loggedInUser = GetLoggedInUser(context);
+            var principal = new ClaimsPrincipal((context as HttpContext)?.User?.Identity ?? new ClaimsIdentity());
 
-            var principal = new ClaimsPrincipal(context.Identity);
+            ChatUser loggedInUser = GetLoggedInUser(principal);
 
             // Do nothing if it's authenticated
-            if (principal.IsAuthenticated())
+            if (principal.Identity.IsAuthenticated)
             {
                 EnsurePersistentCookie(context);
                 return;
@@ -170,12 +170,7 @@ namespace JabbR.Infrastructure
 
         private ChatUser GetLoggedInUser(ClaimsPrincipal principal)
         {
-            if (principal != null)
-            {
-                return _repository.GetLoggedInUser(principal);
-            }
-
-            return null;
+            return principal != null ? _repository.GetLoggedInUser(principal) : null;
         }
     }
 }
