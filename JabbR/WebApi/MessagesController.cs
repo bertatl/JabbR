@@ -1,9 +1,8 @@
-﻿using System;
+using System;
 using System.Globalization;
 using System.Linq;
 using System.Net;
-using System.Net.Http;
-using System.Web.Http;
+using Microsoft.AspNetCore.Mvc;
 using JabbR.Infrastructure;
 using JabbR.Models;
 using JabbR.Services;
@@ -11,23 +10,21 @@ using JabbR.WebApi.Model;
 
 namespace JabbR.WebApi
 {
-    public class MessagesController : ApiController
+    [ApiController]
+    [Route("[controller]")]
+    public class MessagesController : ControllerBase
     {
         const string FilenameDateFormat = "yyyy-MM-dd.HHmmsszz";
-        private IJabbrRepository _repository;
+        private readonly IJabbrRepository _repository;
 
         public MessagesController(IJabbrRepository repository)
         {
             _repository = repository;
         }
 
-        public HttpResponseMessage GetAllMessages(string room, string range)
+        [HttpGet]
+        public IActionResult GetAllMessages(string room, string range = "last-hour")
         {
-            if (String.IsNullOrWhiteSpace(range))
-            {
-                range = "last-hour";
-            }
-
             var end = DateTime.Now;
             DateTime start;
 
@@ -49,7 +46,7 @@ namespace JabbR.WebApi
                     start = DateTime.MinValue;
                     break;
                 default:
-                    return Request.CreateJabbrErrorMessage(HttpStatusCode.BadRequest, "range value not recognized");
+                    return BadRequest("Range value not recognized");
             }
 
             var filenamePrefix = room + ".";
@@ -61,8 +58,7 @@ namespace JabbR.WebApi
 
             filenamePrefix += end.ToString(FilenameDateFormat, CultureInfo.InvariantCulture);
 
-
-            ChatRoom chatRoom = null;
+            ChatRoom chatRoom;
 
             try
             {
@@ -70,13 +66,13 @@ namespace JabbR.WebApi
             }
             catch (Exception ex)
             {
-                return Request.CreateJabbrErrorMessage(HttpStatusCode.NotFound, ex.Message, filenamePrefix);
+                return NotFound(new { error = ex.Message, filenamePrefix });
             }
 
             if (chatRoom.Private)
             {
-                // TODO: Allow viewing messages using auth token
-                return Request.CreateJabbrErrorMessage(HttpStatusCode.NotFound, String.Format(LanguageResources.RoomNotFound, chatRoom.Name), filenamePrefix);
+// TODO: Allow viewing messages using auth token
+                return NotFound(new { error = String.Format(LanguageResources.RoomNotFound, chatRoom.Name), filenamePrefix });
             }
 
             var messages = _repository.GetMessagesByRoom(chatRoom)
@@ -90,8 +86,7 @@ namespace JabbR.WebApi
                     HtmlEncoded = msg.HtmlEncoded,
                 });
 
-
-            return Request.CreateJabbrSuccessMessage(HttpStatusCode.OK, messages, filenamePrefix);
+            return Ok(new { messages, filenamePrefix });
         }
     }
 }
