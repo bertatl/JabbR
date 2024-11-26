@@ -11,7 +11,7 @@ using Nancy.Bootstrappers.Ninject;
 using Nancy.Owin;
 using Nancy.Security;
 using Nancy.Configuration;
-using Nancy.Bootstrapper;
+
 using Ninject;
 
 namespace JabbR.Nancy
@@ -33,11 +33,6 @@ namespace JabbR.Nancy
         public override INancyEnvironment GetEnvironment()
         {
             return new DefaultNancyEnvironment();
-        }
-
-        protected override INancyEnvironmentConfigurator GetEnvironmentConfigurator()
-        {
-            return NancyInternalConfiguration.Default;
         }
 
         protected override void ApplicationStartup(IKernel container, IPipelines pipelines)
