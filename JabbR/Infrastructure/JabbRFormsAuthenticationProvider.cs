@@ -5,30 +5,30 @@ using System.Threading.Tasks;
 using JabbR.Models;
 using JabbR.Services;
 using Newtonsoft.Json;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Http;
+
+using Microsoft.AspNetCore.Owin;
 
 
 namespace JabbR.Infrastructure
 {
-public class JabbRFormsAuthenticationProvider : ICookieAuthenticationEvents
-{
-    private readonly IJabbrRepository _repository;
-    private readonly IMembershipService _membershipService;
-
-    public JabbRFormsAuthenticationProvider(IJabbrRepository repository, IMembershipService membershipService)
+    public class JabbRFormsAuthenticationProvider : ICookieAuthenticationProvider
     {
-        _repository = repository;
-        _membershipService = membershipService;
-    }
+        private readonly IJabbrRepository _repository;
+        private readonly IMembershipService _membershipService;
 
-    public Task ValidateAsync(CookieValidatePrincipalContext context)
-    {
-        return Task.CompletedTask;
-    }
+        public JabbRFormsAuthenticationProvider(IJabbrRepository repository, IMembershipService membershipService)
+        {
+            _repository = repository;
+            _membershipService = membershipService;
+        }
 
-    public Task SigningIn(CookieSigningInContext context)
+        public Task ValidateIdentity(CookieValidateIdentityContext context)
+        {
+            return TaskAsyncHelper.Empty;
+        }
+
+        public void ResponseSignIn(CookieResponseSignInContext context)
         {
             var authResult = new AuthenticationResult
             {
@@ -110,64 +110,51 @@ public class JabbRFormsAuthenticationProvider : ICookieAuthenticationEvents
                                        cookieOptions);
         }
 
-    private static void AddClaim(CookieSigningInContext context, ChatUser user)
-    {
-        // Do nothing if the user is banned
-        if (user.IsBanned)
+        private static void AddClaim(CookieResponseSignInContext context, ChatUser user)
         {
-            return;
+            // Do nothing if the user is banned
+            if (user.IsBanned)
+            {
+                return;
+            }
+
+            // Add the jabbr id claim
+            context.Identity.AddClaim(new Claim(JabbRClaimTypes.Identifier, user.Id));
+
+            // Add the admin claim if the user is an Administrator
+            if (user.IsAdmin)
+            {
+                context.Identity.AddClaim(new Claim(JabbRClaimTypes.Admin, "true"));
+            }
+
+            EnsurePersistentCookie(context);
         }
 
-        // Add the jabbr id claim
-        context.Principal.AddIdentity(new ClaimsIdentity(new[] { new Claim(JabbRClaimTypes.Identifier, user.Id) }));
-
-        // Add the admin claim if the user is an Administrator
-        if (user.IsAdmin)
+        private static void EnsurePersistentCookie(CookieResponseSignInContext context)
         {
-            context.Principal.AddIdentity(new ClaimsIdentity(new[] { new Claim(JabbRClaimTypes.Admin, "true") }));
+            if (context.Properties == null)
+            {
+                context.Properties = new AuthenticationProperties();
+            }
+
+            context.Properties.IsPersistent = true;
         }
 
-        EnsurePersistentCookie(context);
-    }
-
-    private static void EnsurePersistentCookie(CookieSigningInContext context)
-    {
-        if (context.Properties == null)
+        private ChatUser GetLoggedInUser(CookieResponseSignInContext context)
         {
-            context.Properties = new AuthenticationProperties();
+            var principal = context.Request.User as ClaimsPrincipal;
+
+            if (principal != null)
+            {
+                return _repository.GetLoggedInUser(principal);
+            }
+
+            return null;
         }
 
-        context.Properties.IsPersistent = true;
-    }
-
-    private ChatUser GetLoggedInUser(CookieSigningInContext context)
-    {
-        var principal = context.Principal;
-
-        if (principal != null)
+        public void ApplyRedirect(CookieApplyRedirectContext context)
         {
-            return _repository.GetLoggedInUser(principal);
+            context.Response.Redirect(context.RedirectUri);
         }
-
-        return null;
-    }
-
-    public Task RedirectToLogin(RedirectContext<CookieAuthenticationOptions> context)
-    {
-        context.Response.Redirect(context.RedirectUri);
-        return Task.CompletedTask;
-    }
-
-    public Task RedirectToLogout(RedirectContext<CookieAuthenticationOptions> context)
-    {
-        context.Response.Redirect(context.RedirectUri);
-        return Task.CompletedTask;
-    }
-
-    public Task RedirectToReturnUrl(RedirectContext<CookieAuthenticationOptions> context)
-    {
-        context.Response.Redirect(context.RedirectUri);
-        return Task.CompletedTask;
-    }
     }
 }
