@@ -5,15 +5,14 @@ using System.Threading.Tasks;
 using JabbR.Models;
 using JabbR.Services;
 using Newtonsoft.Json;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Identity;
+
+using Microsoft.AspNetCore.Owin;
 
 
 namespace JabbR.Infrastructure
 {
-    public class JabbRFormsAuthenticationProvider : ITicketStore
+    public class JabbRFormsAuthenticationProvider : ICookieAuthenticationProvider
     {
         private readonly IJabbrRepository _repository;
         private readonly IMembershipService _membershipService;
@@ -24,12 +23,12 @@ namespace JabbR.Infrastructure
             _membershipService = membershipService;
         }
 
-        public Task ValidateAsync(CookieValidatePrincipalContext context)
+        public Task ValidateIdentity(CookieValidateIdentityContext context)
         {
-            return Task.CompletedTask;
+            return TaskAsyncHelper.Empty;
         }
 
-        public Task SignInAsync(HttpContext context, AuthenticationScheme scheme, ClaimsPrincipal principal, AuthenticationProperties properties)
+        public void ResponseSignIn(CookieResponseSignInContext context)
         {
             var authResult = new AuthenticationResult
             {
