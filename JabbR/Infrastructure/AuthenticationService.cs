@@ -4,9 +4,7 @@ using System.Linq;
 using JabbR.Services;
 using SimpleAuthentication;
 using SimpleAuthentication.Core;
-using System;
-using System.Collections.Generic;
-using System.Linq;
+// Remove the SimpleAuthentication.Providers namespace as it might not exist in the current version
 
 namespace JabbR.Infrastructure
 {
@@ -18,29 +16,41 @@ namespace JabbR.Infrastructure
         {
             _factory = factory;
 
-            AddProviderIfConfigured("facebook", appSettings.FacebookAppId, appSettings.FacebookAppSecret);
-            AddProviderIfConfigured("twitter", appSettings.TwitterConsumerKey, appSettings.TwitterConsumerSecret);
-            AddProviderIfConfigured("google", appSettings.GoogleClientID, appSettings.GoogleClientSecret);
-        }
-
-        private void AddProviderIfConfigured(string providerName, string publicKey, string secretKey)
-        {
-            if (!String.IsNullOrWhiteSpace(publicKey) && !String.IsNullOrWhiteSpace(secretKey))
+            if (!String.IsNullOrWhiteSpace(appSettings.FacebookAppId) && !String.IsNullOrWhiteSpace(appSettings.FacebookAppSecret))
             {
-                var provider = _factory.CreateProvider(providerName, new ProviderParams
+                _factory.AddProvider(new FacebookProvider(new ProviderParams
                 {
-                    PublicApiKey = publicKey,
-                    SecretApiKey = secretKey
-                });
-
-                if (provider != null)
-                {
-                    _factory.AddProvider(provider);
-                }
+                    PublicApiKey = appSettings.FacebookAppId,
+                    SecretApiKey = appSettings.FacebookAppSecret
+                }));
             }
             else
             {
-                _factory.RemoveProvider(providerName);
+                _factory.RemoveProvider<FacebookProvider>();
+            }
+            if (!String.IsNullOrWhiteSpace(appSettings.TwitterConsumerKey) && !String.IsNullOrWhiteSpace(appSettings.TwitterConsumerSecret))
+            {
+                _factory.AddProvider(new TwitterProvider(new ProviderParams
+                {
+                    PublicApiKey = appSettings.TwitterConsumerKey,
+                    SecretApiKey = appSettings.TwitterConsumerSecret
+                }));
+            }
+            else
+            {
+                _factory.RemoveProvider<TwitterProvider>();
+            }
+            if (!String.IsNullOrWhiteSpace(appSettings.GoogleClientID) && !String.IsNullOrWhiteSpace(appSettings.GoogleClientSecret))
+            {
+                _factory.AddProvider(new GoogleProvider(new ProviderParams
+                {
+                    PublicApiKey = appSettings.GoogleClientID,
+                    SecretApiKey = appSettings.GoogleClientSecret
+                }));
+            }
+            else
+            {
+                _factory.RemoveProvider<GoogleProvider>();
             }
         }
 
