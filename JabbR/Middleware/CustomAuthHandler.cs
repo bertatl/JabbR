@@ -4,46 +4,48 @@ using System.Security.Claims;
 using System.Security.Principal;
 using System.Threading.Tasks;
 using JabbR.Infrastructure;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Owin;
+
 
 namespace JabbR.Middleware
 {
+    using AppFunc = Func<IDictionary<string, object>, Task>;
+
     public class CustomAuthHandler
     {
-        private readonly RequestDelegate _next;
-        private readonly IAuthenticationService _authenticationService;
+        private readonly AppFunc _next;
 
-        public CustomAuthHandler(RequestDelegate next, IAuthenticationService authenticationService)
+        public CustomAuthHandler(AppFunc next)
         {
             _next = next;
-            _authenticationService = authenticationService;
         }
 
-        public async Task Invoke(HttpContext context)
+        public async Task Invoke(IDictionary<string, object> env)
         {
-            var claimsPrincipal = context.User as ClaimsPrincipal;
+            var context = new OwinContext(env);
+
+            var claimsPrincipal = context.Request.User as ClaimsPrincipal;
 
             if (claimsPrincipal != null &&
                 !(claimsPrincipal is WindowsPrincipal) &&
                 claimsPrincipal.Identity.IsAuthenticated &&
-                !claimsPrincipal.Identity.IsAuthenticated &&
+                !claimsPrincipal.IsAuthenticated() &&
                 claimsPrincipal.HasClaim(ClaimTypes.NameIdentifier))
             {
                 var identity = new ClaimsIdentity(claimsPrincipal.Claims, Constants.JabbRAuthType);
 
-                var providerName = claimsPrincipal.FindFirst(ClaimTypes.AuthenticationMethod)?.Value;
+                var providerName = claimsPrincipal.GetIdentityProvider();
 
-                if (string.IsNullOrEmpty(providerName))
+                if (String.IsNullOrEmpty(providerName))
                 {
                     // If there's no provider name just add custom as the name
                     identity.AddClaim(new Claim(ClaimTypes.AuthenticationMethod, "Custom"));
                 }
 
-                await _authenticationService.SignInAsync(context, Constants.JabbRAuthType, new ClaimsPrincipal(identity));
+                context.Authentication.SignIn(identity);
             }
 
-            await _next(context);
+            await _next(env);
         }
     }
 }
