@@ -40,6 +40,14 @@ namespace JabbR.Nancy
             container.Bind<INancyEnvironment>().ToConstant(environment);
         }
 
+        protected override INancyEnvironmentConfigurator GetEnvironmentConfigurator()
+        {
+            return new DefaultNancyEnvironmentConfigurator(
+                GetEnvironment,
+                Enumerable.Empty<INancyDefaultConfigurationProvider>()
+            );
+        }
+
         protected override void ApplicationStartup(IKernel container, IPipelines pipelines)
         {
             base.ApplicationStartup(container, pipelines);
