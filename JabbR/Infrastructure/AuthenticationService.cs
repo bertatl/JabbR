@@ -4,6 +4,7 @@ using System.Linq;
 using JabbR.Services;
 using SimpleAuthentication;
 using SimpleAuthentication.Core;
+// Remove the SimpleAuthentication.Providers namespace as it might not exist in the current version
 
 namespace JabbR.Infrastructure
 {
@@ -15,54 +16,52 @@ namespace JabbR.Infrastructure
         {
             _factory = factory;
 
-            ConfigureProvider("facebook", appSettings.FacebookAppId, appSettings.FacebookAppSecret);
-            ConfigureProvider("twitter", appSettings.TwitterConsumerKey, appSettings.TwitterConsumerSecret);
-            ConfigureProvider("google", appSettings.GoogleClientID, appSettings.GoogleClientSecret);
-        }
-
-        private void ConfigureProvider(string providerName, string publicKey, string secretKey)
-        {
-            if (!string.IsNullOrWhiteSpace(publicKey) && !string.IsNullOrWhiteSpace(secretKey))
+            if (!String.IsNullOrWhiteSpace(appSettings.FacebookAppId) && !String.IsNullOrWhiteSpace(appSettings.FacebookAppSecret))
             {
-                var providerParams = new ProviderParams
+                _factory.AddProvider(new FacebookProvider(new ProviderParams
                 {
-                    PublicApiKey = publicKey,
-                    SecretApiKey = secretKey
-                };
-
-                switch (providerName.ToLowerInvariant())
-                {
-                    case "facebook":
-                        _factory.AddProvider(new FacebookProvider(providerParams));
-                        break;
-                    case "twitter":
-                        _factory.AddProvider(new TwitterProvider(providerParams));
-                        break;
-                    case "google":
-                        _factory.AddProvider(new GoogleProvider(providerParams));
-                        break;
-                }
+                    PublicApiKey = appSettings.FacebookAppId,
+                    SecretApiKey = appSettings.FacebookAppSecret
+                }));
             }
             else
             {
-                switch (providerName.ToLowerInvariant())
+                _factory.RemoveProvider<FacebookProvider>();
+            }
+            if (!String.IsNullOrWhiteSpace(appSettings.TwitterConsumerKey) && !String.IsNullOrWhiteSpace(appSettings.TwitterConsumerSecret))
+            {
+                _factory.AddProvider(new TwitterProvider(new ProviderParams
                 {
-                    case "facebook":
-                        _factory.RemoveProvider<FacebookProvider>();
-                        break;
-                    case "twitter":
-                        _factory.RemoveProvider<TwitterProvider>();
-                        break;
-                    case "google":
-                        _factory.RemoveProvider<GoogleProvider>();
-                        break;
-                }
+                    PublicApiKey = appSettings.TwitterConsumerKey,
+                    SecretApiKey = appSettings.TwitterConsumerSecret
+                }));
+            }
+            else
+            {
+                _factory.RemoveProvider<TwitterProvider>();
+            }
+            if (!String.IsNullOrWhiteSpace(appSettings.GoogleClientID) && !String.IsNullOrWhiteSpace(appSettings.GoogleClientSecret))
+            {
+                _factory.AddProvider(new GoogleProvider(new ProviderParams
+                {
+                    PublicApiKey = appSettings.GoogleClientID,
+                    SecretApiKey = appSettings.GoogleClientSecret
+                }));
+            }
+            else
+            {
+                _factory.RemoveProvider<GoogleProvider>();
             }
         }
 
         public IEnumerable<IAuthenticationProvider> GetProviders()
         {
-            return _factory.AuthenticationProviders?.Values ?? Enumerable.Empty<IAuthenticationProvider>();
+            if (_factory.AuthenticationProviders == null)
+            {
+                return Enumerable.Empty<IAuthenticationProvider>();
+            }
+
+            return _factory.AuthenticationProviders.Values;
         }
     }
 }
