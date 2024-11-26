@@ -4,7 +4,6 @@ using System.Linq;
 using JabbR.Services;
 using SimpleAuthentication;
 using SimpleAuthentication.Core;
-// Remove the SimpleAuthentication.Providers namespace as it might not exist in the current version
 
 namespace JabbR.Infrastructure
 {
@@ -16,52 +15,44 @@ namespace JabbR.Infrastructure
         {
             _factory = factory;
 
-            if (!String.IsNullOrWhiteSpace(appSettings.FacebookAppId) && !String.IsNullOrWhiteSpace(appSettings.FacebookAppSecret))
+            ConfigureProvider("facebook", appSettings.FacebookAppId, appSettings.FacebookAppSecret);
+            ConfigureProvider("twitter", appSettings.TwitterConsumerKey, appSettings.TwitterConsumerSecret);
+            ConfigureProvider("google", appSettings.GoogleClientID, appSettings.GoogleClientSecret);
+        }
+
+        private void ConfigureProvider(string providerName, string publicKey, string secretKey)
+        {
+            if (!String.IsNullOrWhiteSpace(publicKey) && !String.IsNullOrWhiteSpace(secretKey))
             {
-                _factory.AddProvider(new FacebookProvider(new ProviderParams
+                var providerParams = new ProviderParams
                 {
-                    PublicApiKey = appSettings.FacebookAppId,
-                    SecretApiKey = appSettings.FacebookAppSecret
-                }));
+                    PublicApiKey = publicKey,
+                    SecretApiKey = secretKey
+                };
+
+                // Use reflection to create the provider instance
+                var providerType = Type.GetType($"SimpleAuthentication.Providers.{providerName}Provider, SimpleAuthentication");
+                if (providerType != null)
+                {
+                    var provider = Activator.CreateInstance(providerType, providerParams) as IAuthenticationProvider;
+                    if (provider != null)
+                    {
+                        _factory.AddProvider(provider);
+                    }
+                }
             }
             else
             {
-                _factory.RemoveProvider<FacebookProvider>();
-            }
-            if (!String.IsNullOrWhiteSpace(appSettings.TwitterConsumerKey) && !String.IsNullOrWhiteSpace(appSettings.TwitterConsumerSecret))
-            {
-                _factory.AddProvider(new TwitterProvider(new ProviderParams
-                {
-                    PublicApiKey = appSettings.TwitterConsumerKey,
-                    SecretApiKey = appSettings.TwitterConsumerSecret
-                }));
-            }
-            else
-            {
-                _factory.RemoveProvider<TwitterProvider>();
-            }
-            if (!String.IsNullOrWhiteSpace(appSettings.GoogleClientID) && !String.IsNullOrWhiteSpace(appSettings.GoogleClientSecret))
-            {
-                _factory.AddProvider(new GoogleProvider(new ProviderParams
-                {
-                    PublicApiKey = appSettings.GoogleClientID,
-                    SecretApiKey = appSettings.GoogleClientSecret
-                }));
-            }
-            else
-            {
-                _factory.RemoveProvider<GoogleProvider>();
+                // Use generic method to remove provider
+                var method = typeof(AuthenticationProviderFactory).GetMethod("RemoveProvider");
+                var genericMethod = method.MakeGenericMethod(Type.GetType($"SimpleAuthentication.Providers.{providerName}Provider, SimpleAuthentication"));
+                genericMethod.Invoke(_factory, null);
             }
         }
 
         public IEnumerable<IAuthenticationProvider> GetProviders()
         {
-            if (_factory.AuthenticationProviders == null)
-            {
-                return Enumerable.Empty<IAuthenticationProvider>();
-            }
-
-            return _factory.AuthenticationProviders.Values;
+            return _factory.AuthenticationProviders?.Values ?? Enumerable.Empty<IAuthenticationProvider>();
         }
     }
 }
