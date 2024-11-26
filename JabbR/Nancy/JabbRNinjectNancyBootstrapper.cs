@@ -52,7 +52,7 @@ namespace JabbR.Nancy
 
         private Response FlowPrincipal(NancyContext context)
         {
-            var env = Get<IDictionary<string, object>>(context.Items, NancyContext.RequestEnvironmentKey);
+            var env = Get<IDictionary<string, object>>(context.Items, NancyOwinHost.RequestEnvironmentKey);
             if (env != null)
             {
                 var principal = Get<IPrincipal>(env, "server.User") as ClaimsPrincipal;
