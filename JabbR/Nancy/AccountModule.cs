@@ -203,7 +203,7 @@ namespace JabbR.Nancy
                 return View["register"];
             });
 
-            Post["/unlink"] = param =>
+            Post("/unlink", param =>
             {
                 if (!HasValidCsrfTokenOrSecHeader)
                 {
@@ -235,7 +235,7 @@ namespace JabbR.Nancy
                 }
 
                 return HttpStatusCode.BadRequest;
-            };
+            });
 
             Post["/newpassword"] = _ =>
             {
