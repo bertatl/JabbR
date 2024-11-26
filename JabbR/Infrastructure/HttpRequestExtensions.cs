@@ -10,9 +10,8 @@ using JabbR.WebApi.Model;
 
 namespace JabbR.Infrastructure
 {
-    public static class HttpRequestExtensions
+    public static class HttpRequestExtensions 
     {
-        private const string IsLocalKey = "IsLocal";
         /// <summary>
         /// Returns a success message for the given data. This is returned to the client using the supplied status code
         /// </summary>
@@ -124,7 +123,7 @@ namespace JabbR.Infrastructure
         public static bool IsLocal(this HttpRequestMessage requestMessage)
         {
             //Web API sets IsLocal as a Lazy<bool> in the Options dictionary
-            if (requestMessage.Options.TryGetValue(IsLocalKey, out var isLocalObj) && isLocalObj is Lazy<bool> isLocal)
+            if (requestMessage.Options.TryGetValue(HttpPropertyKeys.IsLocalKey, out var isLocalObj) && isLocalObj is Lazy<bool> isLocal)
             {
                 return isLocal.Value;
             }
@@ -142,7 +141,7 @@ namespace JabbR.Infrastructure
         public static void SetIsLocal(this HttpRequestMessage requestMessage, bool value)
         {
             //Web API sets IsLocal as a Lazy<bool> in the Options dictionary
-            requestMessage.Options[IsLocalKey] = new Lazy<bool>(() => value);
+            requestMessage.Options[HttpPropertyKeys.IsLocalKey] = new Lazy<bool>(() => value);
         }
 
         /// <summary>
