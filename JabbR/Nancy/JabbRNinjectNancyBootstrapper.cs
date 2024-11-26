@@ -58,7 +58,7 @@ namespace JabbR.Nancy
                 var principal = env["server.User"] as ClaimsPrincipal;
                 if (principal != null)
                 {
-                    context.CurrentUser = new ClaimsPrincipalUserIdentity(principal);
+                    context.CurrentUser = principal;
                 }
 
                 var appMode = env.ContainsKey("host.AppMode") ? env["host.AppMode"] as string : null;
