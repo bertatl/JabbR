@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using System.Security.Claims;
 using System.Security.Principal;
 using System.Threading;
@@ -39,14 +38,6 @@ namespace JabbR.Nancy
         protected override void RegisterNancyEnvironment(IKernel container, INancyEnvironment environment)
         {
             container.Bind<INancyEnvironment>().ToConstant(environment);
-        }
-
-        protected override INancyEnvironmentConfigurator GetEnvironmentConfigurator()
-        {
-            return new DefaultNancyEnvironmentConfigurator(
-                () => GetEnvironment(),
-                Enumerable.Empty<INancyDefaultConfigurationProvider>()
-            );
         }
 
         protected override void ApplicationStartup(IKernel container, IPipelines pipelines)
