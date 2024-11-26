@@ -1,10 +1,10 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Security.Claims;
 using Nancy.Security;
 
 namespace JabbR.Nancy
 {
-    public class ClaimsPrincipalUserIdentity : IUserIdentity
+    public class ClaimsPrincipalUserIdentity : IIdentity
     {
         public ClaimsPrincipalUserIdentity(ClaimsPrincipal claimsPrincipal)
         {
