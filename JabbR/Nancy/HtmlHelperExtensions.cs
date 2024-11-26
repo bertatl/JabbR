@@ -9,12 +9,13 @@ using Nancy.Validation;
 using Nancy.ViewEngines.Razor;
 using PagedList;
 using AntiXSS = Microsoft.Security.Application;
+using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace JabbR
 {
     public static class HtmlHelperExtensions
     {
-        public static string CheckBox<T>(this HtmlHelpers<T> helper, string Name, bool value)
+        public static string CheckBox(this IHtmlHelper helper, string Name, bool value)
         {
             string input = String.Empty;
 
@@ -43,7 +44,7 @@ namespace JabbR
             return checkBoxBuilder.ToString();
         }
 
-        public static string ValidationSummary<TModel>(this HtmlHelpers<TModel> htmlHelper)
+        public static string ValidationSummary(this IHtmlHelper htmlHelper)
         {
             var validationResult = htmlHelper.RenderContext.Context.ModelValidationResult;
             if (validationResult.IsValid)
@@ -66,7 +67,7 @@ namespace JabbR
             return new NonEncodedHtmlString(summaryBuilder.ToString());
         }
 
-        public static string ValidationMessage<TModel>(this HtmlHelpers<TModel> htmlHelper, string propertyName)
+        public static string ValidationMessage(this IHtmlHelper htmlHelper, string propertyName)
         {
             var errorsForField = htmlHelper.GetErrorsForProperty(propertyName).ToList();
 
@@ -78,7 +79,7 @@ namespace JabbR
             return errorsForField.First().GetMessage(propertyName);
         }
 
-        public static string AlertMessages<TModel>(this HtmlHelpers<TModel> htmlHelper)
+        public static string AlertMessages(this IHtmlHelper htmlHelper)
         {
             const string message = @"<div class=""alert alert-{0}"">{1}</div>";
             var alertsDynamicValue = htmlHelper.RenderContext.Context.ViewBag.Alerts;
@@ -99,7 +100,7 @@ namespace JabbR
             return builder.ToString();
         }
 
-        internal static IEnumerable<ModelValidationError> GetErrorsForProperty<TModel>(this HtmlHelpers<TModel> htmlHelper,
+        internal static IEnumerable<ModelValidationError> GetErrorsForProperty(this IHtmlHelper htmlHelper,
                                                                          string propertyName)
         {
             var validationResult = htmlHelper.RenderContext.Context.ModelValidationResult;
@@ -115,7 +116,7 @@ namespace JabbR
             return errorsForField;
         }
 
-        public static string SimplePager<TModel>(this HtmlHelpers<TModel> htmlHelper, IPagedList pagedList, string baseUrl)
+        public static string SimplePager(this IHtmlHelper htmlHelper, IPagedList pagedList, string baseUrl)
         {
             var pagerBuilder = new StringBuilder();
 
@@ -136,7 +137,7 @@ namespace JabbR
             return pagerBuilder.ToString();
         }
 
-        public static string DisplayNoneIf<TModel>(this HtmlHelpers<TModel> htmlHelper, Expression<Func<TModel, bool>> expression)
+        public static string DisplayNoneIf(this IHtmlHelper htmlHelper, Expression<Func<object, bool>> expression)
         {
             if (expression.Compile()(htmlHelper.Model))
             {
@@ -146,7 +147,7 @@ namespace JabbR
             return String.Empty;
         }
 
-        public static string RequestQuery<TModel>(this HtmlHelpers<TModel> htmlHelper)
+        public static string RequestQuery(this IHtmlHelper htmlHelper)
         {
             if (htmlHelper.RenderContext.Context.Request.Url != null && !String.IsNullOrEmpty(htmlHelper.RenderContext.Context.Request.Url.Query))
             {
