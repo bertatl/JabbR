@@ -10,6 +10,7 @@ using Nancy.ViewEngines.Razor;
 using PagedList;
 using AntiXSS = Microsoft.Security.Application;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 namespace JabbR
 {
@@ -44,22 +45,21 @@ namespace JabbR
             return checkBoxBuilder.ToString();
         }
 
-        public static string ValidationSummary(this IHtmlHelper htmlHelper)
+        public static string ValidationSummary(this IHtmlHelper htmlHelper, ModelStateDictionary modelState)
         {
-            var validationResult = htmlHelper.RenderContext.Context.ModelValidationResult;
-            if (validationResult.IsValid)
+            if (modelState.IsValid)
             {
-                return new NonEncodedHtmlString(String.Empty);
+                return string.Empty;
             }
 
             var summaryBuilder = new StringBuilder();
 
             summaryBuilder.Append(@"<ul class=""validation-summary-errors"">");
-            foreach (var modelValidationError in validationResult.Errors)
+            foreach (var modelStateEntry in modelState)
             {
-                foreach (var memberName in modelValidationError.MemberNames)
+                foreach (var error in modelStateEntry.Value.Errors)
                 {
-                    summaryBuilder.AppendFormat("<li>{0}</li>", modelValidationError.GetMessage(memberName));
+                    summaryBuilder.AppendFormat("<li>{0}</li>", error.ErrorMessage);
                 }
             }
             summaryBuilder.Append(@"</ul>");
