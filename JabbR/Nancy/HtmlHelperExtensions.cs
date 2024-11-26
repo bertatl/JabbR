@@ -101,20 +101,20 @@ namespace JabbR
             return builder.ToString();
         }
 
-        internal static IEnumerable<ModelValidationError> GetErrorsForProperty(this IHtmlHelper htmlHelper,
+        internal static IEnumerable<ModelError> GetErrorsForProperty(this IHtmlHelper htmlHelper,
                                                                          string propertyName)
         {
-            var validationResult = htmlHelper.RenderContext.Context.ModelValidationResult;
-            if (validationResult.IsValid)
+            if (htmlHelper.ViewContext.ModelState.IsValid)
             {
-                return Enumerable.Empty<ModelValidationError>();
+                return Enumerable.Empty<ModelError>();
             }
 
-            var errorsForField =
-                validationResult.Errors.Where(
-                    x => x.MemberNames.Any(y => y.Equals(propertyName, StringComparison.InvariantCultureIgnoreCase)));
+            if (htmlHelper.ViewContext.ModelState.TryGetValue(propertyName, out ModelStateEntry entry))
+            {
+                return entry.Errors;
+            }
 
-            return errorsForField;
+            return Enumerable.Empty<ModelError>();
         }
 
         public static string SimplePager(this IHtmlHelper htmlHelper, IPagedList pagedList, string baseUrl)
