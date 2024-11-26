@@ -11,6 +11,7 @@ using Nancy.Bootstrappers.Ninject;
 using Nancy.Owin;
 using Nancy.Security;
 using Nancy.Configuration;
+using Nancy.Json;
 
 using Ninject;
 
@@ -33,6 +34,14 @@ namespace JabbR.Nancy
         public override INancyEnvironment GetEnvironment()
         {
             return new DefaultNancyEnvironment();
+        }
+
+        protected override INancyEnvironmentConfigurator GetEnvironmentConfigurator()
+        {
+            return NancyInternalConfiguration.WithOverrides(c =>
+            {
+                c.Serializers = new[] { typeof(DefaultJsonSerializer) };
+            });
         }
 
         protected override void ApplicationStartup(IKernel container, IPipelines pipelines)
