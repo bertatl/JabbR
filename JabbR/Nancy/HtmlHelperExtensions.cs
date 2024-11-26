@@ -11,6 +11,7 @@ using PagedList;
 using AntiXSS = Microsoft.Security.Application;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.AspNetCore.Html;
 
 namespace JabbR
 {
@@ -45,11 +46,11 @@ namespace JabbR
             return checkBoxBuilder.ToString();
         }
 
-        public static string ValidationSummary(this IHtmlHelper htmlHelper, ModelStateDictionary modelState)
+        public static IHtmlContent ValidationSummary(this IHtmlHelper htmlHelper, ModelStateDictionary modelState)
         {
             if (modelState.IsValid)
             {
-                return string.Empty;
+                return HtmlString.Empty;
             }
 
             var summaryBuilder = new StringBuilder();
@@ -64,7 +65,7 @@ namespace JabbR
             }
             summaryBuilder.Append(@"</ul>");
 
-            return new NonEncodedHtmlString(summaryBuilder.ToString());
+            return new HtmlString(summaryBuilder.ToString());
         }
 
         public static string ValidationMessage(this IHtmlHelper htmlHelper, string propertyName)
