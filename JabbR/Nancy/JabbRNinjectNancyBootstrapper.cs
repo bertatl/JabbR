@@ -35,14 +35,6 @@ namespace JabbR.Nancy
             return new DefaultNancyEnvironment();
         }
 
-        protected override INancyEnvironmentConfigurator GetEnvironmentConfigurator()
-        {
-            return environment =>
-            {
-                environment.Tracing(enabled: false, displayErrorTraces: true);
-            };
-        }
-
         protected override void ApplicationStartup(IKernel container, IPipelines pipelines)
         {
             base.ApplicationStartup(container, pipelines);
