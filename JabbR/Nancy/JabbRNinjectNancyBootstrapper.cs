@@ -11,7 +11,6 @@ using Nancy.Bootstrappers.Ninject;
 using Nancy.Owin;
 using Nancy.Security;
 using Nancy.Configuration;
-using Microsoft.AspNetCore.Http;
 
 using Ninject;
 
@@ -53,19 +52,26 @@ namespace JabbR.Nancy
 
         private Response FlowPrincipal(NancyContext context)
         {
-            var httpContext = context.GetHttpContext();
-            if (httpContext != null)
+            var env = Get<IDictionary<string, object>>(context.Items, NancyOwinHost.RequestEnvironmentKey);
+            if (env != null)
             {
-                var principal = httpContext.User as ClaimsPrincipal;
+                var principal = Get<IPrincipal>(env, "server.User") as ClaimsPrincipal;
                 if (principal != null)
                 {
                     context.CurrentUser = new ClaimsPrincipalUserIdentity(principal);
                 }
 
-                var appMode = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+                var appMode = Get<string>(env, "host.AppMode");
 
-                context.Items["_debugMode"] = !string.IsNullOrEmpty(appMode) &&
-                    appMode.Equals("Development", StringComparison.OrdinalIgnoreCase);
+                if (!String.IsNullOrEmpty(appMode) &&
+                    appMode.Equals("development", StringComparison.OrdinalIgnoreCase))
+                {
+                    context.Items["_debugMode"] = true;
+                }
+                else
+                {
+                    context.Items["_debugMode"] = false;
+                }
             }
 
             return null;
