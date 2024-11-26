@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
@@ -70,7 +70,7 @@ namespace JabbR.Nancy
                 return View["monitor"];
             };
 
-            Get["/status", runAsync: true] = async (_, token) =>
+            Get("/status", async (_, token) =>
             {
                 var model = new StatusViewModel();
 
@@ -177,7 +177,7 @@ namespace JabbR.Nancy
                 }
 
                 return view;
-            };
+            });
         }
 
         private static string BuildClientResources()
