@@ -1,14 +1,13 @@
 using System;
-using System.Collections.Generic;
 using System.Diagnostics.Contracts;
-using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using Ninject;
 using Ninject.Syntax;
 
 
 namespace JabbR.Infrastructure
 {
-    public class NinjectDependencyScope : IDependencyScope
+    public class NinjectDependencyScope : IServiceProvider, IDisposable
     {
         private IResolutionRoot resolver;
 
@@ -21,8 +20,7 @@ namespace JabbR.Infrastructure
 
         public void Dispose()
         {
-            IDisposable disposable = resolver as IDisposable;
-            if (disposable != null)
+            if (resolver is IDisposable disposable)
                 disposable.Dispose();
 
             resolver = null;
@@ -35,19 +33,11 @@ namespace JabbR.Infrastructure
 
             return resolver.TryGet(serviceType);
         }
-
-        public IEnumerable<object> GetServices(Type serviceType)
-        {
-            if (resolver == null)
-                throw new ObjectDisposedException("this", "This scope has already been disposed");
-
-            return resolver.GetAll(serviceType);
-        }
     }
 
-    public class NinjectWebApiDependencyResolver : NinjectDependencyScope, IDependencyResolver
+    public class NinjectWebApiDependencyResolver : NinjectDependencyScope, IServiceScopeFactory
     {
-        private IKernel kernel;
+        private readonly IKernel kernel;
 
         public NinjectWebApiDependencyResolver(IKernel kernel)
             : base(kernel)
@@ -55,9 +45,26 @@ namespace JabbR.Infrastructure
             this.kernel = kernel;
         }
 
-        public IDependencyScope BeginScope()
+        public IServiceScope CreateScope()
         {
-            return new NinjectDependencyScope(kernel.BeginBlock());
+            return new NinjectServiceScope(new NinjectDependencyScope(kernel.BeginBlock()));
+        }
+    }
+
+    public class NinjectServiceScope : IServiceScope
+    {
+        private readonly NinjectDependencyScope scope;
+
+        public NinjectServiceScope(NinjectDependencyScope scope)
+        {
+            this.scope = scope;
+        }
+
+        public IServiceProvider ServiceProvider => scope;
+
+        public void Dispose()
+        {
+            scope.Dispose();
         }
     }
 }
