@@ -124,7 +124,7 @@ namespace JabbR.Nancy
                 return View["register"];
             });
 
-            Post["/create"] = _ =>
+            Post("/create", _ =>
             {
                 if (!HasValidCsrfTokenOrSecHeader)
                 {
@@ -201,7 +201,7 @@ namespace JabbR.Nancy
                 }
 
                 return View["register"];
-            };
+            });
 
             Post["/unlink"] = param =>
             {
