@@ -56,21 +56,22 @@ namespace JabbR.Infrastructure
         }
 
         [Obsolete("This method is obsolete. Use AuthenticateAsync instead.")]
-        public void ResponseSignIn(object context)
+        public void ResponseSignIn(HttpContext context)
         {
             var authResult = new AuthenticationResult
             {
                 Success = true
             };
 
-            var principal = new ClaimsPrincipal((context as HttpContext)?.User?.Identity ?? new ClaimsIdentity());
+            var principal = new ClaimsPrincipal(context?.User?.Identity ?? new ClaimsIdentity());
 
             ChatUser loggedInUser = GetLoggedInUser(principal);
 
             // Do nothing if it's authenticated
             if (principal.Identity.IsAuthenticated)
             {
-                EnsurePersistentCookie(context);
+                var properties = new AuthenticationProperties();
+                EnsurePersistentCookie(properties);
                 return;
             }
 
@@ -87,14 +88,14 @@ namespace JabbR.Infrastructure
                     authResult.Success = false;
 
                     // Keep the old user logged in
-                    context.Identity.AddClaim(new Claim(JabbRClaimTypes.Identifier, loggedInUser.Id));
+                    context.User.AddIdentity(new ClaimsIdentity(new[] { new Claim(JabbRClaimTypes.Identifier, loggedInUser.Id) }));
                 }
                 else
                 {
                     // Login this user
-                    AddClaim(context, user);
+                    var properties = new AuthenticationProperties();
+                    AddClaim(principal, properties, user);
                 }
-
             }
             else if (principal.HasAllClaims())
             {
