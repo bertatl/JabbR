@@ -121,12 +121,13 @@ namespace JabbR.Infrastructure
                     targetUser = loggedInUser;
                 }
 
-                AddClaim(context, targetUser);
+                var properties = new AuthenticationProperties();
+                AddClaim(principal, properties, targetUser);
             }
             else if(!principal.HasPartialIdentity())
             {
                 // A partial identity means the user needs to add more claims to login
-                context.Identity.AddClaim(new Claim(JabbRClaimTypes.PartialIdentity, "true"));
+                principal.AddIdentity(new ClaimsIdentity(new[] { new Claim(JabbRClaimTypes.PartialIdentity, "true") }));
             }
 
             var cookieOptions = new CookieOptions
