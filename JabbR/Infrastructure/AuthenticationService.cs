@@ -1,9 +1,9 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using JabbR.Services;
-using SimpleAuthentication.Core;
-using SimpleAuthentication.Core.Providers;
+using SimpleAuthentication;
+using SimpleAuthentication.Providers;
 
 namespace JabbR.Infrastructure
 {
