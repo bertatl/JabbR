@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 
 using JabbR.Services;
 using Nancy;
+using Nancy.Responses.Negotiation;
 
 namespace JabbR.Nancy
 {
