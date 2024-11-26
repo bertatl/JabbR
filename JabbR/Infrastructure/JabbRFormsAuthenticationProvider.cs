@@ -5,13 +5,14 @@ using System.Threading.Tasks;
 using JabbR.Models;
 using JabbR.Services;
 using Newtonsoft.Json;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Http;
+
+using Microsoft.AspNetCore.Owin;
+
 
 namespace JabbR.Infrastructure
 {
-    public class JabbRFormsAuthenticationProvider : ITicketStore
+    public class JabbRFormsAuthenticationProvider : ICookieAuthenticationProvider
     {
         private readonly IJabbrRepository _repository;
         private readonly IMembershipService _membershipService;
@@ -22,36 +23,12 @@ namespace JabbR.Infrastructure
             _membershipService = membershipService;
         }
 
-        public Task RemoveAsync(string key)
+        public Task ValidateIdentity(CookieValidateIdentityContext context)
         {
-            // Implement removal logic here
-            return Task.CompletedTask;
+            return TaskAsyncHelper.Empty;
         }
 
-        public Task RenewAsync(string key, AuthenticationTicket ticket)
-        {
-            // Implement renewal logic here
-            return Task.CompletedTask;
-        }
-
-        public Task<AuthenticationTicket> RetrieveAsync(string key)
-        {
-            // Implement retrieval logic here
-            return Task.FromResult<AuthenticationTicket>(null);
-        }
-
-        public Task<string> StoreAsync(AuthenticationTicket ticket)
-        {
-            // Implement storage logic here
-            return Task.FromResult(Guid.NewGuid().ToString());
-        }
-
-        public Task ValidateIdentity(CookieValidatePrincipalContext context)
-        {
-            return Task.CompletedTask;
-        }
-
-        public Task SignInAsync(HttpContext httpContext, ClaimsPrincipal principal, AuthenticationProperties properties)
+        public void ResponseSignIn(CookieResponseSignInContext context)
         {
             var authResult = new AuthenticationResult
             {
