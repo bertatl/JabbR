@@ -8,9 +8,10 @@ using System.Threading;
 using Nancy;
 using Nancy.Bootstrapper;
 using Nancy.Bootstrappers.Ninject;
+using Nancy.Configuration;
 using Nancy.Owin;
 using Nancy.Security;
-using Nancy.Configuration;
+using System.Collections.Generic;
 
 using Ninject;
 
@@ -30,7 +31,7 @@ namespace JabbR.Nancy
             return _kernel;
         }
 
-        public override INancyEnvironment GetEnvironment()
+        protected override INancyEnvironment GetEnvironment()
         {
             return new DefaultNancyEnvironment();
         }
@@ -38,6 +39,26 @@ namespace JabbR.Nancy
         protected override void RegisterNancyEnvironment(IKernel container, INancyEnvironment environment)
         {
             container.Bind<INancyEnvironment>().ToConstant(environment);
+        }
+
+        protected override Func<IConfiguration> GetEnvironmentConfigurator()
+        {
+            return () =>
+            {
+                var environment = GetEnvironment();
+                var configurators = GetConfigurationProviders();
+
+                var configurator = new DefaultNancyEnvironmentConfigurator(
+                    () => environment,
+                    configurators);
+
+                return configurator;
+            };
+        }
+
+        private IEnumerable<INancyDefaultConfigurationProvider> GetConfigurationProviders()
+        {
+            yield break;
         }
 
         protected override void ApplicationStartup(IKernel container, IPipelines pipelines)
