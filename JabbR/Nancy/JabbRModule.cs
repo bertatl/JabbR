@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Globalization;
 using System.Linq;
 using System.Security.Claims;
@@ -97,7 +97,7 @@ namespace JabbR.Nancy
                 context.Response.StatusCode != HttpStatusCode.Found)
             {
                 context.Request.Session.Delete(AlertMessageStore.AlertMessageKey);
-                context.Response.Cookies.Delete(Constants.AuthResultCookie);
+                context.Response.AddCookie(Constants.AuthResultCookie, null, DateTime.Now.AddDays(-1));
             }
         }
     }
