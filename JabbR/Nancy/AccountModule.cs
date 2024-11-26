@@ -237,7 +237,7 @@ namespace JabbR.Nancy
                 return HttpStatusCode.BadRequest;
             });
 
-            Post["/newpassword"] = _ =>
+            Post("/newpassword", _ =>
             {
                 if (!HasValidCsrfTokenOrSecHeader)
                 {
@@ -276,9 +276,9 @@ namespace JabbR.Nancy
                 }
 
                 return GetProfileView(authService, user);
-            };
+            });
 
-            Post["/changepassword"] = _ =>
+            Post("/changepassword", _ =>
             {
                 if (!HasValidCsrfTokenOrSecHeader)
                 {
@@ -328,9 +328,9 @@ namespace JabbR.Nancy
                 }
 
                 return GetProfileView(authService, user);
-            };
+            });
 
-            Post["/changeusername"] = _ =>
+            Post("/changeusername", _ =>
             {
                 if (!HasValidCsrfTokenOrSecHeader)
                 {
@@ -372,7 +372,7 @@ namespace JabbR.Nancy
                 }
 
                 return GetProfileView(authService, user);
-            };
+            });
 
             Get("/requestresetpassword", _ =>
             {
