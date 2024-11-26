@@ -77,7 +77,7 @@ namespace JabbR
                 return String.Empty;
             }
 
-            return errorsForField.First().GetMessage(propertyName);
+            return errorsForField.First().ErrorMessage;
         }
 
         public static string AlertMessages(this IHtmlHelper htmlHelper)
