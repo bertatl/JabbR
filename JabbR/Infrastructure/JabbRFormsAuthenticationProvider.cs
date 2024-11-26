@@ -1,23 +1,21 @@
 using System;
 using System.Collections.Generic;
 using System.Security.Claims;
-using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using JabbR.Models;
 using JabbR.Services;
 using Newtonsoft.Json;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
+using Microsoft.AspNetCore.Authentication.Cookies;
+
+using Microsoft.AspNetCore.Owin;
+
 
 namespace JabbR.Infrastructure
 {
-    public class JabbRFormsAuthenticationProvider : IAuthenticationHandler
+    public class JabbRFormsAuthenticationProvider : ICookieAuthenticationProvider
     {
         private readonly IJabbrRepository _repository;
         private readonly IMembershipService _membershipService;
-        private AuthenticationScheme _scheme;
-        private HttpContext _context;
 
         public JabbRFormsAuthenticationProvider(IJabbrRepository repository, IMembershipService membershipService)
         {
@@ -25,38 +23,12 @@ namespace JabbR.Infrastructure
             _membershipService = membershipService;
         }
 
-        public Task InitializeAsync(AuthenticationScheme scheme, HttpContext context)
+        public Task ValidateIdentity(CookieValidateIdentityContext context)
         {
-            _scheme = scheme;
-            _context = context;
-            return Task.CompletedTask;
+            return TaskAsyncHelper.Empty;
         }
 
-        public Task<AuthenticateResult> AuthenticateAsync()
-        {
-            // Implement your authentication logic here
-            return Task.FromResult(AuthenticateResult.NoResult());
-        }
-
-        public Task ChallengeAsync(AuthenticationProperties properties)
-        {
-            // Implement your challenge logic here
-            return Task.CompletedTask;
-        }
-
-        public Task ForbidAsync(AuthenticationProperties properties)
-        {
-            // Implement your forbid logic here
-            return Task.CompletedTask;
-        }
-
-        protected Task HandleAuthenticateAsync()
-        {
-            // This method replaces ValidateIdentity
-            return Task.CompletedTask;
-        }
-
-        protected Task HandleSignInAsync(ClaimsPrincipal user, AuthenticationProperties properties)
+        public void ResponseSignIn(CookieResponseSignInContext context)
         {
             var authResult = new AuthenticationResult
             {
