@@ -1,7 +1,8 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Text.RegularExpressions;
 using JabbR.ContentProviders.Core;
 using System.Threading.Tasks;
@@ -13,28 +14,27 @@ namespace JabbR.ContentProviders
     {
         private static readonly string ContentFormat = "<div class='bbc_wrapper'><div class=\"bbc_header\"><img src=\"/Content/images/contentproviders/bbcnews-masthead.png\" alt=\"\" width=\"84\" height=\"24\"></div><img src=\"{1}\" title=\"{2}\" alt=\"{3}\" class=\"bbc_newsimage\" /><h2>{0}</h2><div>{4}</div><div><a href=\"{5}\" target=\"_blank\">{6}</a></div></div>";
 
-        protected override Task<ContentProviderResult> GetCollapsibleContent(ContentProviderHttpRequest request)
+        protected override async Task<ContentProviderResult> GetCollapsibleContent(ContentProviderHttpRequest request)
         {
-            return ExtractFromResponse(request).Then(pageInfo =>
+            var pageInfo = await ExtractFromResponse(request);
+            return new ContentProviderResult()
             {
-                return new ContentProviderResult()
-                {
-                    Content = String.Format(ContentFormat, pageInfo.Title, pageInfo.ImageURL, pageInfo.Title, pageInfo.Title, pageInfo.Description, pageInfo.PageURL, LanguageResources.ViewArticle),
-                    Title = pageInfo.Title
-                };
-            });
+                Content = String.Format(ContentFormat, pageInfo.Title, pageInfo.ImageURL, pageInfo.Title, pageInfo.Title, pageInfo.Description, pageInfo.PageURL, LanguageResources.ViewArticle),
+                Title = pageInfo.Title
+            };
         }
 
-        private Task<PageInfo> ExtractFromResponse(ContentProviderHttpRequest request)
+        private async Task<PageInfo> ExtractFromResponse(ContentProviderHttpRequest request)
         {
-            return Http.GetAsync(request.RequestUri).Then(response =>
+using (var httpClient = new HttpClient())
             {
+                var response = await httpClient.GetAsync(request.RequestUri);
                 var info = new PageInfo();
-                using (var responseStream = response.GetResponseStream())
+using (var responseStream = await response.Content.ReadAsStreamAsync())
                 {
-                    using (var sr = new StreamReader(responseStream))
+using (var sr = new StreamReader(responseStream))
                     {
-                        var pageContext = WebUtility.HtmlDecode(sr.ReadToEnd());
+                        var pageContext = WebUtility.HtmlDecode(await sr.ReadToEndAsync());
                         info.Title = ExtractUsingRegex(new Regex(@"<meta\s.*property=""og:title"".*content=""(.*)"".*/>"), pageContext);
                         info.Description = ExtractUsingRegex(new Regex(@"<meta\s.*name=""Description"".*content=""(.*)"".*/>"), pageContext);
                         info.ImageURL = ExtractUsingRegex(new Regex(@"<meta.*property=""og:image"".*content=""(.*)"".*/>"), pageContext);
@@ -43,10 +43,10 @@ namespace JabbR.ContentProviders
                 }
 
                 return info;
-            });
+            }
         }
 
-        private string ExtractUsingRegex(Regex regularExpression, string content)
+        private static string ExtractUsingRegex(Regex regularExpression, string content)
         {
             var matches = regularExpression.Match(content)
                 .Groups
