@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Security.Claims;
@@ -12,7 +12,6 @@ using Nancy.Owin;
 using Nancy.Security;
 
 using Ninject;
-using System;
 
 namespace JabbR.Nancy
 {
@@ -28,11 +27,6 @@ namespace JabbR.Nancy
         protected override IKernel GetApplicationContainer()
         {
             return _kernel;
-        }
-
-        protected override Func<IKernel, IKernel> GetEnvironmentConfigurator()
-        {
-            return kernel => kernel;
         }
 
         protected override void ApplicationStartup(IKernel container, IPipelines pipelines)
