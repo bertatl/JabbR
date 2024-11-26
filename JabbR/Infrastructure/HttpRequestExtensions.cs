@@ -41,7 +41,10 @@ namespace JabbR.Infrastructure
         /// <returns>HttpResponseMessage that wraps the given payload</returns>
         public static HttpResponseMessage CreateJabbrSuccessMessage<T>(this HttpRequestMessage Request, HttpStatusCode statusCode, T data)
         {
-            var responseMessage = Request.CreateResponse(statusCode, data);
+            var responseMessage = new HttpResponseMessage(statusCode)
+            {
+                Content = new ObjectContent<T>(data, new System.Net.Http.Formatting.JsonMediaTypeFormatter())
+            };
             return AddResponseHeaders(Request, responseMessage, null);
         }
 
