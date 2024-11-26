@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
@@ -47,7 +47,7 @@ namespace JabbR.ContentProviders
 
                     string fileName = Path.GetFileName(request.RequestUri.LocalPath);
                     string contentType = GetContentType(request.RequestUri);
-                    long contentLength = response.ContentLength;
+                    long? contentLength = response.Content.Headers.ContentLength;
 
                     Trace.TraceInformation("Status code: " + response.StatusCode);
                     Trace.TraceInformation("response.GetResponseStream()");
@@ -56,7 +56,7 @@ namespace JabbR.ContentProviders
                     {
                         Trace.TraceInformation("Uploading content " + imageUrl + ".");
 
-                        UploadResult result = await uploadProcessor.HandleUpload(fileName, contentType, stream, contentLength)
+                        UploadResult result = await uploadProcessor.HandleUpload(fileName, contentType, stream, contentLength ?? -1)
                                                                    .ConfigureAwait(continueOnCapturedContext: false);
 
                         Trace.TraceInformation("Uploading " + imageUrl + " complete.");
