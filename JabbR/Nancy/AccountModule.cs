@@ -249,8 +249,8 @@ namespace JabbR.Nancy
                     return HttpStatusCode.Forbidden;
                 }
 
-                string password = Request.Form["password"];
-                string confirmPassword = Request.Form["confirmPassword"];
+                string password = Request.Form.password;
+                string confirmPassword = Request.Form.confirmPassword;
 
                 ValidatePassword(password, confirmPassword);
 
