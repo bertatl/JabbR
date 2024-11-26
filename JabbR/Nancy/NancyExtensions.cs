@@ -42,7 +42,7 @@ namespace JabbR.Nancy
 
         public static void SignOut(this NancyModule module)
         {
-            var env = Get<IDictionary<string, object>>(module.Context.Items, NancyOwinHost.RequestEnvironmentKey);
+            var env = Get<IDictionary<string, object>>(module.Context.Items, "owin.RequestBody");
             var owinContext = new OwinContext(env);
 
             owinContext.Authentication.SignOut(Constants.JabbRAuthType);
