@@ -1,4 +1,4 @@
-﻿using System.Text.RegularExpressions;
+using System.Text.RegularExpressions;
 
 using JabbR.Services;
 
@@ -8,14 +8,20 @@ using Nancy.ViewEngines;
 
 namespace JabbR.Nancy
 {
-    public class ErrorPageHandler : DefaultViewRenderer, IStatusCodeHandler
+    public class ErrorPageHandler : IViewRenderer, IStatusCodeHandler
     {
         private readonly IJabbrRepository _repository;
+        private readonly IViewFactory _factory;
 
         public ErrorPageHandler(IViewFactory factory, IJabbrRepository repository)
-            : base(factory)
         {
             _repository = repository;
+            _factory = factory;
+        }
+
+        public Response RenderView(string viewName, dynamic model, ViewLocationContext viewLocationContext)
+        {
+            return _factory.RenderView(viewName, model, viewLocationContext);
         }
 
         public bool HandlesStatusCode(HttpStatusCode statusCode, NancyContext context)
