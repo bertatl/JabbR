@@ -6,16 +6,17 @@ using JabbR.Models;
 using JabbR.Services;
 using Newtonsoft.Json;
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Http;
 
 
 namespace JabbR.Infrastructure
 {
-    public class JabbRFormsAuthenticationProvider : ICookieAuthenticationProvider
+    public class JabbRFormsAuthenticationProvider : IAuthenticationHandler
     {
         private readonly IJabbrRepository _repository;
         private readonly IMembershipService _membershipService;
+        private HttpContext _context;
+        private AuthenticationScheme _scheme;
 
         public JabbRFormsAuthenticationProvider(IJabbrRepository repository, IMembershipService membershipService)
         {
@@ -23,12 +24,32 @@ namespace JabbR.Infrastructure
             _membershipService = membershipService;
         }
 
-        public Task ValidateIdentity(CookieValidateIdentityContext context)
+        public Task InitializeAsync(AuthenticationScheme scheme, HttpContext context)
         {
-            return TaskAsyncHelper.Empty;
+            _scheme = scheme;
+            _context = context;
+            return Task.CompletedTask;
         }
 
-        public void ResponseSignIn(CookieResponseSignInContext context)
+        public Task<AuthenticateResult> AuthenticateAsync()
+        {
+            // Implement authentication logic here
+            return Task.FromResult(AuthenticateResult.NoResult());
+        }
+
+        public Task ChallengeAsync(AuthenticationProperties properties)
+        {
+            // Implement challenge logic here
+            return Task.CompletedTask;
+        }
+
+        public Task ForbidAsync(AuthenticationProperties properties)
+        {
+            // Implement forbid logic here
+            return Task.CompletedTask;
+        }
+
+        public Task HandleAuthenticateAsync()
         {
             var authResult = new AuthenticationResult
             {
@@ -110,44 +131,44 @@ namespace JabbR.Infrastructure
                                        cookieOptions);
         }
 
-    private static void AddClaim(ClaimsPrincipal principal, AuthenticationProperties properties, ChatUser user)
-    {
-        // Do nothing if the user is banned
-        if (user.IsBanned)
+        private static void AddClaim(ClaimsPrincipal principal, AuthenticationProperties properties, ChatUser user)
         {
-            return;
+            // Do nothing if the user is banned
+            if (user.IsBanned)
+            {
+                return;
+            }
+
+            // Add the jabbr id claim
+            principal.AddIdentity(new ClaimsIdentity(new[] { new Claim(JabbRClaimTypes.Identifier, user.Id) }));
+
+            // Add the admin claim if the user is an Administrator
+            if (user.IsAdmin)
+            {
+                principal.AddIdentity(new ClaimsIdentity(new[] { new Claim(JabbRClaimTypes.Admin, "true") }));
+            }
+
+            EnsurePersistentCookie(properties);
         }
 
-        // Add the jabbr id claim
-        principal.AddIdentity(new ClaimsIdentity(new[] { new Claim(JabbRClaimTypes.Identifier, user.Id) }));
-
-        // Add the admin claim if the user is an Administrator
-        if (user.IsAdmin)
+        private static void EnsurePersistentCookie(AuthenticationProperties properties)
         {
-            principal.AddIdentity(new ClaimsIdentity(new[] { new Claim(JabbRClaimTypes.Admin, "true") }));
+            if (properties == null)
+            {
+                properties = new AuthenticationProperties();
+            }
+
+            properties.IsPersistent = true;
         }
 
-        EnsurePersistentCookie(properties);
-    }
-
-    private static void EnsurePersistentCookie(AuthenticationProperties properties)
-    {
-        if (properties == null)
+        private ChatUser GetLoggedInUser(ClaimsPrincipal principal)
         {
-            properties = new AuthenticationProperties();
+            if (principal != null)
+            {
+                return _repository.GetLoggedInUser(principal);
+            }
+
+            return null;
         }
-
-        properties.IsPersistent = true;
-    }
-
-    private ChatUser GetLoggedInUser(ClaimsPrincipal principal)
-    {
-        if (principal != null)
-        {
-            return _repository.GetLoggedInUser(principal);
-        }
-
-        return null;
-    }
     }
 }
