@@ -278,7 +278,7 @@ using (var ms = new MemoryStream())
 
         private static IEnumerable<string> BuildReferenceList()
         {
-            string currentAssemblyLocation = typeof(RazorEmailTemplateEngine).Assembly.CodeBase.Replace("file:///", String.Empty).Replace("/", "\\");
+            string currentAssemblyLocation = typeof(RazorEmailTemplateEngine).Assembly.Location;
 
             return new List<string>
                        {
