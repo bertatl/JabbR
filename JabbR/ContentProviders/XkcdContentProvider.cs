@@ -37,30 +37,33 @@ namespace JabbR.ContentProviders
             });
         }
 
-        private async Task<XkcdContentProvider.XkcdComicInfo> ExtractFromResponse(ContentProviderHttpRequest request)
+        private Task<XkcdContentProvider.XkcdComicInfo> ExtractFromResponse(ContentProviderHttpRequest request)
         {
-            var response = await Http.GetAsync(request.RequestUri);
-            var comicInfo = new XkcdComicInfo();
-
-using (var responseStream = await response.Content.ReadAsStreamAsync())
+            return Http.GetAsync(request.RequestUri).Then(response =>
             {
-                var htmlDocument = new HtmlDocument();
-                await htmlDocument.LoadHtmlAsync(responseStream);
-                htmlDocument.OptionFixNestedTags = true;
+                var comicInfo = new XkcdComicInfo();
 
-                var comic = htmlDocument.DocumentNode.SelectSingleNode("//div[@id='comic']/img");
-
-                if (comic == null)
+                using (var responseStream = response.GetResponseStream())
                 {
-                    return null;
+                    var htmlDocument = new HtmlDocument();
+                    htmlDocument.Load(responseStream);
+                    htmlDocument.OptionFixNestedTags = true;
+
+                    var comic = htmlDocument.DocumentNode.SelectSingleNode("//div[@id='comic']/img");
+                                            
+                    if (comic == null)
+                    {
+                        return null;
+                    }
+
+                    comicInfo.Title = comic.Attributes["alt"].Value;
+                    comicInfo.ImageUrl = comic.Attributes["src"].Value;
+                    comicInfo.Description = comic.Attributes["title"].Value;
+
                 }
 
-                comicInfo.Title = comic.Attributes["alt"].Value;
-                comicInfo.ImageUrl = comic.Attributes["src"].Value;
-                comicInfo.Description = comic.Attributes["title"].Value;
-            }
-
-            return comicInfo;
+                return comicInfo;
+            });
         }
 
         public override bool IsValidContent(Uri uri)
