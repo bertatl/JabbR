@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Globalization;
 using System.Linq;
 using System.Net;
@@ -8,6 +8,7 @@ using JabbR.Infrastructure;
 using JabbR.Models;
 using JabbR.Services;
 using JabbR.WebApi.Model;
+using Microsoft.AspNetCore.Mvc;
 
 namespace JabbR.WebApi
 {
