@@ -140,7 +140,7 @@ namespace JabbR
 
         public static string DisplayNoneIf(this IHtmlHelper htmlHelper, Expression<Func<object, bool>> expression)
         {
-            if (expression.Compile()(htmlHelper.Model))
+            if (expression.Compile()(htmlHelper.ViewData.Model))
             {
                 return @" style=""display:none;"" ";
             }
