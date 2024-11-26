@@ -8,6 +8,7 @@ using Nancy.Helpers;
 using Nancy.Owin;
 using Newtonsoft.Json;
 using Microsoft.AspNetCore.Owin;
+using Microsoft.Owin;
 
 
 namespace JabbR.Nancy
@@ -16,7 +17,7 @@ namespace JabbR.Nancy
     {
         public static Response SignIn(this NancyModule module, IEnumerable<Claim> claims)
         {
-            var env = Get<IDictionary<string, object>>(module.Context.Items, NancyOwinHost.RequestEnvironmentKey);
+            var env = Get<IDictionary<string, object>>(module.Context.Items, "owin.RequestBody");
             var owinContext = new OwinContext(env);
 
             var identity = new ClaimsIdentity(claims, Constants.JabbRAuthType);
