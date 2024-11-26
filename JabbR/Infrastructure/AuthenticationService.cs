@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using JabbR.Services;
 using SimpleAuthentication;
-using SimpleAuthentication.Providers;
+// Remove the SimpleAuthentication.Providers namespace as it might not exist in the current version
 
 namespace JabbR.Infrastructure
 {
