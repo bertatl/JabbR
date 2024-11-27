@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Razor.Language;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using JabbR.Infrastructure;
+using System.IO;
 
 namespace JabbR.Services
 {
@@ -196,34 +197,46 @@ namespace JabbR.Services
 
         private static Assembly GenerateAssembly(params KeyValuePair<string, string>[] templates)
         {
-            var templateResults = templates.Select(pair => _razorEngine.GenerateCode(new StringReader(pair.Value), pair.Key, NamespaceName, pair.Key + ".cs")).ToList();
+            var templateResults = templates.Select(pair => {
+                var sourceDocument = RazorSourceDocument.Create(pair.Value, pair.Key);
+                var codeDocument = _razorEngine.Process(sourceDocument, null, new List<RazorSourceDocument>(), new List<TagHelperDescriptor>());
+                return codeDocument.GetCSharpDocument();
+            }).ToList();
 
-            if (templateResults.Any(result => result.ParserErrors.Any()))
+            if (templateResults.Any(result => result.Diagnostics.Any(d => d.Severity == RazorDiagnosticSeverity.Error)))
             {
-                var parseExceptionMessage = String.Join(Environment.NewLine + Environment.NewLine, templateResults.SelectMany(r => r.ParserErrors).Select(e => e.Location + ":" + Environment.NewLine + e.Message).ToArray());
+                var parseExceptionMessage = String.Join(Environment.NewLine + Environment.NewLine,
+                    templateResults.SelectMany(r => r.Diagnostics)
+                                   .Where(d => d.Severity == RazorDiagnosticSeverity.Error)
+                                   .Select(e => e.GetMessage()));
 
                 throw new InvalidOperationException(parseExceptionMessage);
             }
 
-            using (var codeProvider = new CSharpCodeProvider())
+            var syntaxTrees = templateResults.Select(r => CSharpSyntaxTree.ParseText(r.GeneratedCode)).ToList();
+            var compilation = CSharpCompilation.Create(
+                "RazorEmailTemplates",
+                syntaxTrees,
+                _referencedAssemblies.Select(path => MetadataReference.CreateFromFile(path)),
+                new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
+                    .WithOptimizationLevel(OptimizationLevel.Release)
+                    .WithPlatform(Platform.AnyCpu));
+
+using (var ms = new MemoryStream())
             {
-                var compilerParameter = new CompilerParameters(_referencedAssemblies)
-                                            {
-                                                IncludeDebugInformation = false,
-                                                GenerateInMemory = true,
-                                                CompilerOptions = "/optimize"
-                                            };
+                var result = compilation.Emit(ms);
 
-                var compilerResults = codeProvider.CompileAssemblyFromDom(compilerParameter, templateResults.Select(r => r.GeneratedCode).ToArray());
-
-                if (compilerResults.Errors.HasErrors)
+                if (!result.Success)
                 {
-                    var compileExceptionMessage = String.Join(Environment.NewLine + Environment.NewLine, compilerResults.Errors.OfType<CompilerError>().Where(ce => !ce.IsWarning).Select(e => e.FileName + ":" + Environment.NewLine + e.ErrorText).ToArray());
+                    var compileExceptionMessage = String.Join(Environment.NewLine + Environment.NewLine,
+                        result.Diagnostics.Where(diagnostic => diagnostic.IsWarningAsError || diagnostic.Severity == DiagnosticSeverity.Error)
+                        .Select(d => $"{d.Id}: {d.GetMessage()}"));
 
                     throw new InvalidOperationException(compileExceptionMessage);
                 }
 
-                return compilerResults.CompiledAssembly;
+                ms.Seek(0, SeekOrigin.Begin);
+                return Assembly.Load(ms.ToArray());
             }
         }
 
