@@ -1,11 +1,10 @@
-using System;
+﻿using System;
 using System.Globalization;
 using System.Linq;
 using System.Security.Claims;
 using JabbR.Infrastructure;
 using Nancy;
 using Nancy.Security;
-using Nancy.Cookies;
 
 namespace JabbR.Nancy
 {
@@ -98,8 +97,7 @@ namespace JabbR.Nancy
                 context.Response.StatusCode != HttpStatusCode.Found)
             {
                 context.Request.Session.Delete(AlertMessageStore.AlertMessageKey);
-                context.Response.Cookies.Remove(Constants.AuthResultCookie);
-                context.Response.Cookies.Add(new NancyCookie(Constants.AuthResultCookie, string.Empty, DateTime.Now.AddDays(-1)));
+                context.Response.AddCookie(Constants.AuthResultCookie, null, DateTime.Now.AddDays(-1));
             }
         }
     }
