@@ -7,7 +7,6 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 using Microsoft.AspNetCore.Razor;
-using Microsoft.AspNetCore.Razor.Language;
 using JabbR.Infrastructure;
 using Microsoft.CSharp;
 
@@ -22,7 +21,7 @@ namespace JabbR.Services
         private const string NamespaceName = "JabbR.Views.EmailTemplates";
 
         private static readonly string[] _referencedAssemblies = BuildReferenceList().ToArray();
-private static readonly RazorEngine _razorEngine = CreateRazorEngine();
+        private static readonly RazorTemplateEngine _razorEngine = CreateRazorEngine();
         private static readonly Dictionary<string, IDictionary<string, Type>> _typeMapping = new Dictionary<string, IDictionary<string, Type>>(StringComparer.OrdinalIgnoreCase);
         private static readonly ReaderWriterLockSlim _syncLock = new ReaderWriterLockSlim();
 
@@ -197,20 +196,14 @@ private static readonly RazorEngine _razorEngine = CreateRazorEngine();
 
         private static Assembly GenerateAssembly(params KeyValuePair<string, string>[] templates)
         {
-var templateResults = templates.Select(pair =>
-{
-    var source = RazorSourceDocument.Create(pair.Value, pair.Key);
-    var codeDocument = _razorEngine.Process(source, null, new List<RazorSourceDocument>(), new List<TagHelperDescriptor>());
-    var csharp = codeDocument.GetCSharpDocument();
-    return new { Key = pair.Key, GeneratedCode = csharp.GeneratedCode, Diagnostics = csharp.Diagnostics };
-}).ToList();
+            var templateResults = templates.Select(pair => _razorEngine.GenerateCode(new StringReader(pair.Value), pair.Key, NamespaceName, pair.Key + ".cs")).ToList();
 
-if (templateResults.Any(result => result.Diagnostics.Any()))
-{
-    var parseExceptionMessage = String.Join(Environment.NewLine + Environment.NewLine, templateResults.SelectMany(r => r.Diagnostics).Select(e => e.GetMessage()).ToArray());
+            if (templateResults.Any(result => result.ParserErrors.Any()))
+            {
+                var parseExceptionMessage = String.Join(Environment.NewLine + Environment.NewLine, templateResults.SelectMany(r => r.ParserErrors).Select(e => e.Location + ":" + Environment.NewLine + e.Message).ToArray());
 
-    throw new InvalidOperationException(parseExceptionMessage);
-}
+                throw new InvalidOperationException(parseExceptionMessage);
+            }
 
             using (var codeProvider = new CSharpCodeProvider())
             {
@@ -221,25 +214,16 @@ if (templateResults.Any(result => result.Diagnostics.Any()))
                                                 CompilerOptions = "/optimize"
                                             };
 
-var syntaxTrees = templateResults.Select(r => Microsoft.CodeAnalysis.CSharp.SyntaxFactory.ParseSyntaxTree(r.GeneratedCode)).ToArray();
-var compilation = Microsoft.CodeAnalysis.CSharp.CSharpCompilation.Create(
-    "DynamicAssembly",
-    syntaxTrees,
-    _referencedAssemblies.Select(r => Microsoft.CodeAnalysis.MetadataReference.CreateFromFile(r)),
-    new Microsoft.CodeAnalysis.CSharp.CSharpCompilationOptions(Microsoft.CodeAnalysis.OutputKind.DynamicallyLinkedLibrary));
+                var compilerResults = codeProvider.CompileAssemblyFromDom(compilerParameter, templateResults.Select(r => r.GeneratedCode).ToArray());
 
-using var ms = new MemoryStream();
-var compilerResults = compilation.Emit(ms);
+                if (compilerResults.Errors.HasErrors)
+                {
+                    var compileExceptionMessage = String.Join(Environment.NewLine + Environment.NewLine, compilerResults.Errors.OfType<CompilerError>().Where(ce => !ce.IsWarning).Select(e => e.FileName + ":" + Environment.NewLine + e.ErrorText).ToArray());
 
-if (!compilerResults.Success)
-{
-    var compileExceptionMessage = String.Join(Environment.NewLine + Environment.NewLine, compilerResults.Diagnostics.Where(d => d.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error).Select(e => e.Location + ":" + Environment.NewLine + e.GetMessage()).ToArray());
+                    throw new InvalidOperationException(compileExceptionMessage);
+                }
 
-    throw new InvalidOperationException(compileExceptionMessage);
-}
-
-ms.Seek(0, SeekOrigin.Begin);
-return Assembly.Load(ms.ToArray());
+                return compilerResults.CompiledAssembly;
             }
         }
 
@@ -263,24 +247,22 @@ return Assembly.Load(ms.ToArray());
             return new DynamicModel(propertyMap);
         }
 
-private static RazorEngine CreateRazorEngine()
-{
-    var builder = RazorProjectEngineBuilder.Create();
-    builder.SetNamespace(NamespaceName);
-    builder.SetBaseType(typeof(EmailTemplate).FullName);
+        private static RazorTemplateEngine CreateRazorEngine()
+        {
+            var host = new RazorEngineHost(new CSharpRazorCodeLanguage())
+                           {
+                               DefaultBaseClass = typeof(EmailTemplate).FullName,
+                               DefaultNamespace = NamespaceName
+                           };
 
-    builder.ConfigureClass((document, classNode) =>
-    {
-        classNode.AddImport("System");
-        classNode.AddImport("System.Collections");
-        classNode.AddImport("System.Collections.Generic");
-        classNode.AddImport("System.Dynamic");
-        classNode.AddImport("System.Linq");
-    });
+            host.NamespaceImports.Add("System");
+            host.NamespaceImports.Add("System.Collections");
+            host.NamespaceImports.Add("System.Collections.Generic");
+            host.NamespaceImports.Add("System.Dynamic");
+            host.NamespaceImports.Add("System.Linq");
 
-    var engine = builder.Build();
-    return engine.Engine;
-}
+            return new RazorTemplateEngine(host);
+        }
 
         private static IEnumerable<string> BuildReferenceList()
         {
