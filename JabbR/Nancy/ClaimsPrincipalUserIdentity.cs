@@ -1,18 +1,14 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Security.Claims;
-using Nancy.Authentication;
-using Microsoft.AspNetCore.Identity;
+using Nancy.Security;
 
 namespace JabbR.Nancy
 {
     public class ClaimsPrincipalUserIdentity : IUserIdentity
     {
-        private readonly UserManager<ApplicationUser> _userManager;
-
-        public ClaimsPrincipalUserIdentity(ClaimsPrincipal claimsPrincipal, UserManager<ApplicationUser> userManager)
+        public ClaimsPrincipalUserIdentity(ClaimsPrincipal claimsPrincipal)
         {
             ClaimsPrincipal = claimsPrincipal;
-            _userManager = userManager;
         }
 
         public ClaimsPrincipal ClaimsPrincipal { get; private set; }
@@ -25,10 +21,8 @@ namespace JabbR.Nancy
 
         public string UserName
         {
-            get => _userManager.GetUserName(ClaimsPrincipal);
-            set => UserName = value;
+            get;
+            set;
         }
-
-        public string UserId => _userManager.GetUserId(ClaimsPrincipal);
     }
 }
