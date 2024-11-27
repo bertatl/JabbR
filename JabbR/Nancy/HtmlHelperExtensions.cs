@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -16,7 +16,7 @@ namespace JabbR
         public static IHtmlString CheckBox<T>(this HtmlHelpers<T> helper, string Name, bool value)
         {
             string input = String.Empty;
-            
+
             var checkBoxBuilder = new StringBuilder();
 
             checkBoxBuilder.Append(@"<input id=""");
@@ -39,7 +39,7 @@ namespace JabbR
             checkBoxBuilder.Append(value.ToString().ToLowerInvariant());
             checkBoxBuilder.Append(@""" />");
 
-            return new NonEncodedHtmlString(checkBoxBuilder.ToString());
+            return new Nancy.Html.HtmlString(checkBoxBuilder.ToString());
         }
 
         public static IHtmlString ValidationSummary<TModel>(this HtmlHelpers<TModel> htmlHelper)
