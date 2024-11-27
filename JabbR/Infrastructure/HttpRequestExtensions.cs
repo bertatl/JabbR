@@ -4,13 +4,19 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Web.Http.Hosting;
+using Microsoft.AspNetCore.Http;
 using JabbR.WebApi.Model;
 
 namespace JabbR.Infrastructure
 {
-    public static class HttpRequestExtensions 
+    public static class HttpRequestExtensions
     {
+        private static IHttpContextAccessor _httpContextAccessor;
+
+        public static void Configure(IHttpContextAccessor httpContextAccessor)
+        {
+            _httpContextAccessor = httpContextAccessor;
+        }
         /// <summary>
         /// Returns a success message for the given data. This is returned to the client using the supplied status code
         /// </summary>
@@ -111,16 +117,27 @@ namespace JabbR.Infrastructure
         /// </returns>
         public static bool IsLocal(this HttpRequestMessage requestMessage)
         {
-            //Web API sets IsLocal as a Lazy<bool> in the Properties dictionary
-            var isLocal = requestMessage.Properties[HttpPropertyKeys.IsLocalKey] as Lazy<bool>;
-            if (isLocal != null)
+            if (_httpContextAccessor?.HttpContext == null)
             {
-                return isLocal.Value;
+                return false;
+            }
+
+            var connection = _httpContextAccessor.HttpContext.Connection;
+            if (connection.RemoteIpAddress != null)
+            {
+                return connection.LocalIpAddress != null
+                    ? connection.RemoteIpAddress.Equals(connection.LocalIpAddress)
+                    : IPAddress.IsLoopback(connection.RemoteIpAddress);
+            }
+
+            // for in memory TestServer or when dealing with default connection info
+            if (connection.RemoteIpAddress == null && connection.LocalIpAddress == null)
+            {
+                return true;
             }
 
             return false;
         }
-
 
         /// <summary>
         /// Sets IsLocal for the specified HttpRequestMessage
@@ -130,8 +147,9 @@ namespace JabbR.Infrastructure
         /// <param name="value">New value of isLocal</param>
         public static void SetIsLocal(this HttpRequestMessage requestMessage, bool value)
         {
-            //Web API sets IsLocal as a Lazy<bool> in the Properties dictionary
-            requestMessage.Properties[HttpPropertyKeys.IsLocalKey] = new Lazy<bool>(()=>value);
+            // This method is no longer applicable in ASP.NET Core.
+            // You may need to modify your unit tests to use a different approach for mocking IsLocal.
+            throw new NotSupportedException("SetIsLocal is not supported in ASP.NET Core. Modify your tests to use IHttpContextAccessor for mocking.");
         }
 
         /// <summary>
