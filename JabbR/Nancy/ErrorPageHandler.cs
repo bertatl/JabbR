@@ -4,18 +4,19 @@ using JabbR.Services;
 
 using Nancy;
 using Nancy.ErrorHandling;
-using Nancy.ViewEngines;
+using Nancy.Responses.Negotiation;
 
 namespace JabbR.Nancy
 {
-    public class ErrorPageHandler : ViewRenderer, IStatusCodeHandler
+    public class ErrorPageHandler : IStatusCodeHandler
     {
         private readonly IJabbrRepository _repository;
+        private readonly IResponseNegotiator _responseNegotiator;
 
-        public ErrorPageHandler(IViewFactory factory, IJabbrRepository repository)
-            : base(factory)
+        public ErrorPageHandler(IJabbrRepository repository, IResponseNegotiator responseNegotiator)
         {
             _repository = repository;
+            _responseNegotiator = responseNegotiator;
         }
 
         public bool HandlesStatusCode(HttpStatusCode statusCode, NancyContext context)
@@ -40,15 +41,20 @@ namespace JabbR.Nancy
                 }
             }
 
-            var response = RenderView(
-                context, 
-                "errorPage", 
-                new 
-                { 
-                    Error = statusCode,
-                    ErrorCode = (int)statusCode,
-                    SuggestRoomName = suggestRoomName
-                });
+            var negotiationContext = new NegotiationContext
+            {
+                Context = context,
+                ViewName = "errorPage"
+            };
+
+            var model = new
+            {
+                Error = statusCode,
+                ErrorCode = (int)statusCode,
+                SuggestRoomName = suggestRoomName
+            };
+
+            var response = _responseNegotiator.NegotiateResponse(model, negotiationContext);
 
             response.StatusCode = statusCode;
             context.Response = response;
