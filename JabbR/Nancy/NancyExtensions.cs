@@ -8,6 +8,7 @@ using Nancy.Helpers;
 using Newtonsoft.Json;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
+using Nancy.Validation;
 
 
 namespace JabbR.Nancy
@@ -49,7 +50,9 @@ namespace JabbR.Nancy
 
         public static void AddValidationError(this NancyModule module, string propertyName, string errorMessage)
         {
-            module.ModelValidationResult = module.ModelValidationResult.AddError(propertyName, errorMessage);
+            var modelValidationResult = new ModelValidationResult();
+            modelValidationResult.Errors.Add(new ModelValidationError(propertyName, errorMessage));
+            module.ValidateModel(modelValidationResult);
         }
 
         public static AuthenticationResult GetAuthenticationResult(this NancyContext context)
