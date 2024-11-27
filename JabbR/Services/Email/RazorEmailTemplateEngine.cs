@@ -6,7 +6,8 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
-using Microsoft.AspNetCore.Razor;
+using System.Web.Razor;
+using System.Web.Razor.Generator;
 using JabbR.Infrastructure;
 using Microsoft.CSharp;
 
@@ -214,7 +215,7 @@ namespace JabbR.Services
                                                 CompilerOptions = "/optimize"
                                             };
 
-                var compilerResults = codeProvider.CompileAssemblyFromDom(compilerParameter, templateResults.Select(r => r.GeneratedCode).ToArray());
+var compilerResults = codeProvider.CompileAssemblyFromSource(compilerParameter, templateResults.Select(r => r.GeneratedCode).ToArray());
 
                 if (compilerResults.Errors.HasErrors)
                 {
