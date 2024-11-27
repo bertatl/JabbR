@@ -4,7 +4,6 @@ using System.Globalization;
 using System.Security.Claims;
 using System.Security.Principal;
 using System.Threading;
-using System.Threading.Tasks;
 
 using Nancy;
 using Nancy.Bootstrapper;
@@ -49,18 +48,6 @@ namespace JabbR.Nancy
         public override INancyEnvironment GetEnvironment()
         {
             return _environment;
-        }
-
-        protected override INancyEnvironmentConfigurator GetEnvironmentConfigurator()
-        {
-            return new DefaultNancyEnvironmentConfigurator(
-                environment =>
-                {
-                    environment.AddValue("Environment", "Development");
-                    _kernel.Bind<INancyEnvironment>().ToConstant(environment);
-                    _environment = environment;
-                    return Task.CompletedTask;
-                });
         }
 
         protected override void ApplicationStartup(IKernel container, IPipelines pipelines)
