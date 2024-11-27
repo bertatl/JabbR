@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -8,16 +8,15 @@ using Nancy.Validation;
 using Nancy.ViewEngines.Razor;
 using PagedList;
 using AntiXSS = Microsoft.Security.Application;
-using System.Web.Mvc;
 
 namespace JabbR
 {
     public static class HtmlHelperExtensions
     {
-        public static IHtmlString CheckBox<T>(this HtmlHelper<T> helper, string Name, bool value)
+        public static IHtmlString CheckBox<T>(this HtmlHelpers<T> helper, string Name, bool value)
         {
             string input = String.Empty;
-
+            
             var checkBoxBuilder = new StringBuilder();
 
             checkBoxBuilder.Append(@"<input id=""");
@@ -40,10 +39,10 @@ namespace JabbR
             checkBoxBuilder.Append(value.ToString().ToLowerInvariant());
             checkBoxBuilder.Append(@""" />");
 
-            return new MvcHtmlString(checkBoxBuilder.ToString());
+            return new NonEncodedHtmlString(checkBoxBuilder.ToString());
         }
 
-        public static IHtmlString ValidationSummary<TModel>(this HtmlHelper<TModel> htmlHelper)
+        public static IHtmlString ValidationSummary<TModel>(this HtmlHelpers<TModel> htmlHelper)
         {
             var validationResult = htmlHelper.RenderContext.Context.ModelValidationResult;
             if (validationResult.IsValid)
