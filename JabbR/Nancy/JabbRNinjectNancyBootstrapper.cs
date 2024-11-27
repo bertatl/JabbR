@@ -37,11 +37,6 @@ namespace JabbR.Nancy
             return environment;
         }
 
-        protected override Func<IConfiguration> GetEnvironmentConfigurator()
-        {
-            return () => GetEnvironment();
-        }
-
         protected override void ApplicationStartup(IKernel container, IPipelines pipelines)
         {
             base.ApplicationStartup(container, pipelines);
