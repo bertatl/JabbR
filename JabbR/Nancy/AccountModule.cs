@@ -203,7 +203,7 @@ namespace JabbR.Nancy
                 return View["register"];
             });
 
-            Post["/unlink"] = param =>
+            Post("/unlink", _ =>
             {
                 if (!HasValidCsrfTokenOrSecHeader)
                 {
@@ -215,7 +215,7 @@ namespace JabbR.Nancy
                     return HttpStatusCode.Forbidden;
                 }
 
-                string provider = Request.Form.provider;
+                string provider = Request.Form["provider"];
                 ChatUser user = repository.GetUserById(Principal.GetUserId());
 
                 if (user.Identities.Count == 1 && !user.HasUserNameAndPasswordCredentials())
@@ -235,7 +235,7 @@ namespace JabbR.Nancy
                 }
 
                 return HttpStatusCode.BadRequest;
-            };
+            });
 
             Post["/newpassword"] = _ =>
             {
