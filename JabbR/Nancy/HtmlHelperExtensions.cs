@@ -4,20 +4,19 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
 using JabbR.Infrastructure;
-using Nancy.Validation;
-using Nancy.ViewEngines.Razor;
+using Microsoft.AspNetCore.Html;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using PagedList;
 using AntiXSS = Microsoft.Security.Application;
-using Microsoft.AspNetCore.Html;
 
 namespace JabbR
 {
     public static class HtmlHelperExtensions
     {
-        public static IHtmlContent CheckBox<T>(this HtmlHelpers<T> helper, string Name, bool value)
+        public static IHtmlContent CheckBox<T>(this IHtmlHelper<T> helper, string Name, bool value)
         {
             string input = String.Empty;
-            
+
             var checkBoxBuilder = new StringBuilder();
 
             checkBoxBuilder.Append(@"<input id=""");
@@ -43,12 +42,12 @@ namespace JabbR
             return new NonEncodedHtmlString(checkBoxBuilder.ToString());
         }
 
-        public static IHtmlContent ValidationSummary<TModel>(this HtmlHelpers<TModel> htmlHelper)
+        public static IHtmlContent ValidationSummary<TModel>(this IHtmlHelper<TModel> htmlHelper)
         {
-            var validationResult = htmlHelper.RenderContext.Context.ModelValidationResult;
+            var validationResult = htmlHelper.ViewContext.ModelState;
             if (validationResult.IsValid)
             {
-                return new NonEncodedHtmlString(String.Empty);
+                return HtmlString.Empty;
             }
 
             var summaryBuilder = new StringBuilder();
@@ -66,27 +65,26 @@ namespace JabbR
             return new NonEncodedHtmlString(summaryBuilder.ToString());
         }
 
-        public static IHtmlContent ValidationMessage<TModel>(this HtmlHelpers<TModel> htmlHelper, string propertyName)
+        public static IHtmlContent ValidationMessage<TModel>(this IHtmlHelper<TModel> htmlHelper, string propertyName)
         {
-            var errorsForField = htmlHelper.GetErrorsForProperty(propertyName).ToList();
+            var errorsForField = htmlHelper.ViewContext.ModelState[propertyName]?.Errors;
 
-            if (!errorsForField.Any())
+            if (errorsForField == null || !errorsForField.Any())
             {
-                return new NonEncodedHtmlString(String.Empty);
+                return HtmlString.Empty;
             }
 
-            return new NonEncodedHtmlString(errorsForField.First().GetMessage(propertyName));
+            return new HtmlString(errorsForField.First().ErrorMessage);
         }
 
-        public static IHtmlContent AlertMessages<TModel>(this HtmlHelpers<TModel> htmlHelper)
+        public static IHtmlContent AlertMessages<TModel>(this IHtmlHelper<TModel> htmlHelper)
         {
             const string message = @"<div class=""alert alert-{0}"">{1}</div>";
-            var alertsDynamicValue = htmlHelper.RenderContext.Context.ViewBag.Alerts;
-            var alerts = (AlertMessageStore)(alertsDynamicValue.HasValue ? alertsDynamicValue.Value : null);
+            var alerts = htmlHelper.ViewBag.Alerts as AlertMessageStore;
 
             if (alerts == null || !alerts.Messages.Any())
             {
-                return new NonEncodedHtmlString(String.Empty);
+                return HtmlString.Empty;
             }
 
             var builder = new StringBuilder();
@@ -99,23 +97,21 @@ namespace JabbR
             return new NonEncodedHtmlString(builder.ToString());
         }
 
-        internal static IEnumerable<ModelValidationError> GetErrorsForProperty<TModel>(this HtmlHelpers<TModel> htmlHelper,
+        internal static IEnumerable<string> GetErrorsForProperty<TModel>(this IHtmlHelper<TModel> htmlHelper,
                                                                          string propertyName)
         {
-            var validationResult = htmlHelper.RenderContext.Context.ModelValidationResult;
-            if (validationResult.IsValid)
+            var modelState = htmlHelper.ViewContext.ModelState;
+            if (modelState.IsValid)
             {
-                return Enumerable.Empty<ModelValidationError>();
+                return Enumerable.Empty<string>();
             }
 
-            var errorsForField =
-                validationResult.Errors.Where(
-                    x => x.MemberNames.Any(y => y.Equals(propertyName, StringComparison.InvariantCultureIgnoreCase)));
+            var errorsForField = modelState[propertyName]?.Errors.Select(e => e.ErrorMessage) ?? Enumerable.Empty<string>();
 
             return errorsForField;
         }
 
-        public static IHtmlContent SimplePager<TModel>(this HtmlHelpers<TModel> htmlHelper, IPagedList pagedList, string baseUrl)
+        public static IHtmlContent SimplePager<TModel>(this IHtmlHelper<TModel> htmlHelper, IPagedList pagedList, string baseUrl)
         {
             var pagerBuilder = new StringBuilder();
 
@@ -136,24 +132,25 @@ namespace JabbR
             return new NonEncodedHtmlString(pagerBuilder.ToString());
         }
 
-        public static IHtmlContent DisplayNoneIf<TModel>(this HtmlHelpers<TModel> htmlHelper, Expression<Func<TModel, bool>> expression)
+        public static IHtmlContent DisplayNoneIf<TModel>(this IHtmlHelper<TModel> htmlHelper, Expression<Func<TModel, bool>> expression)
         {
-            if (expression.Compile()(htmlHelper.Model))
+            if (expression.Compile()(htmlHelper.ViewData.Model))
             {
-                return new NonEncodedHtmlString(@" style=""display:none;"" ");
+                return new HtmlString(@" style=""display:none;"" ");
             }
 
-            return NonEncodedHtmlString.Empty;
+            return HtmlString.Empty;
         }
 
-        public static string RequestQuery<TModel>(this HtmlHelpers<TModel> htmlHelper)
+        public static string RequestQuery<TModel>(this IHtmlHelper<TModel> htmlHelper)
         {
-            if (htmlHelper.RenderContext.Context.Request.Url != null && !String.IsNullOrEmpty(htmlHelper.RenderContext.Context.Request.Url.Query))
+            var query = htmlHelper.ViewContext.HttpContext.Request.QueryString.Value;
+            if (!string.IsNullOrEmpty(query))
             {
-                return "?" + htmlHelper.RenderContext.Context.Request.Url.Query;
+                return query;
             }
 
-            return String.Empty;
+            return string.Empty;
         }
     }
 }
