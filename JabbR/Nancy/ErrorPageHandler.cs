@@ -5,7 +5,6 @@ using JabbR.Services;
 using Nancy;
 using Nancy.ErrorHandling;
 using Nancy.ViewEngines;
-using Nancy.Responses.Negotiation;
 
 namespace JabbR.Nancy
 {
@@ -49,7 +48,7 @@ namespace JabbR.Nancy
                 SuggestRoomName = suggestRoomName
             }];
 
-            context.Response = response.AsResponse(context);
+            context.Response = response;
             context.Response.StatusCode = statusCode;
         }
     }
