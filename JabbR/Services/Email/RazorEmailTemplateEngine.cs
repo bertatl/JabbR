@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Razor.Language;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using JabbR.Infrastructure;
+using Microsoft.AspNetCore.Razor.Language;
 
 namespace JabbR.Services
 {
@@ -196,11 +197,17 @@ namespace JabbR.Services
 
         private static Assembly GenerateAssembly(params KeyValuePair<string, string>[] templates)
         {
-            var templateResults = templates.Select(pair => _razorEngine.GenerateCode(new StringReader(pair.Value), pair.Key, NamespaceName, pair.Key + ".cs")).ToList();
+            var templateResults = templates.Select(pair => {
+                var codeDocument = _razorEngine.Process(RazorSourceDocument.Create(pair.Value, pair.Key));
+                return codeDocument.GetCSharpDocument();
+            }).ToList();
 
-            if (templateResults.Any(result => result.ParserErrors.Any()))
+            if (templateResults.Any(result => result.Diagnostics.Any(d => d.Severity == RazorDiagnosticSeverity.Error)))
             {
-                var parseExceptionMessage = String.Join(Environment.NewLine + Environment.NewLine, templateResults.SelectMany(r => r.ParserErrors).Select(e => e.Location + ":" + Environment.NewLine + e.Message).ToArray());
+                var parseExceptionMessage = String.Join(Environment.NewLine + Environment.NewLine,
+                    templateResults.SelectMany(r => r.Diagnostics)
+                                   .Where(d => d.Severity == RazorDiagnosticSeverity.Error)
+                                   .Select(e => e.GetMessage()));
 
                 throw new InvalidOperationException(parseExceptionMessage);
             }
