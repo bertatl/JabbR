@@ -374,7 +374,7 @@ namespace JabbR.Nancy
                 return GetProfileView(authService, user);
             };
 
-            Get["/requestresetpassword"] = _ =>
+            Get("/requestresetpassword", _ =>
             {
                 if (IsAuthenticated)
                 {
@@ -389,9 +389,9 @@ namespace JabbR.Nancy
                 }
 
                 return View["requestresetpassword"];
-            };
+            });
 
-            Post["/requestresetpassword"] = _ =>
+            Post("/requestresetpassword", _ =>
             {
                 if (!HasValidCsrfTokenOrSecHeader)
                 {
@@ -448,9 +448,9 @@ namespace JabbR.Nancy
                 }
 
                 return View["requestresetpassword"];
-            };
+            });
 
-            Get["/resetpassword/{id}"] = parameters =>
+            Get("/resetpassword/{id}", parameters =>
             {
                 if (!applicationSettings.AllowUserResetPassword ||
                     string.IsNullOrWhiteSpace(applicationSettings.EmailSender))
@@ -480,9 +480,9 @@ namespace JabbR.Nancy
                         return View["resetpassword", user.RequestPasswordResetId];
                     }
                 }
-            };
+            });
 
-            Post["/resetpassword/{id}"] = parameters =>
+            Post("/resetpassword/{id}", parameters =>
             {
                 if (!HasValidCsrfTokenOrSecHeader)
                 {
@@ -528,7 +528,7 @@ namespace JabbR.Nancy
                 }
 
                 return View["resetpassword", resetPasswordToken];
-            };
+            });
         }
 
         private void ValidatePassword(string password, string confirmPassword)
