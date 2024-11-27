@@ -8,13 +8,14 @@ using Nancy.ViewEngines;
 
 namespace JabbR.Nancy
 {
-    public class ErrorPageHandler : ViewRenderer, IStatusCodeHandler
+    public class ErrorPageHandler : IStatusCodeHandler
     {
         private readonly IJabbrRepository _repository;
+        private readonly INancyModule _module;
 
-        public ErrorPageHandler(IViewFactory factory, IJabbrRepository repository)
-            : base(factory)
+        public ErrorPageHandler(INancyModule module, IJabbrRepository repository)
         {
+            _module = module;
             _repository = repository;
         }
 
@@ -40,15 +41,12 @@ namespace JabbR.Nancy
                 }
             }
 
-            var response = RenderView(
-                context, 
-                "errorPage", 
-                new 
-                { 
-                    Error = statusCode,
-                    ErrorCode = (int)statusCode,
-                    SuggestRoomName = suggestRoomName
-                });
+            var response = _module.View["errorPage", new
+            {
+                Error = statusCode,
+                ErrorCode = (int)statusCode,
+                SuggestRoomName = suggestRoomName
+            }];
 
             response.StatusCode = statusCode;
             context.Response = response;
