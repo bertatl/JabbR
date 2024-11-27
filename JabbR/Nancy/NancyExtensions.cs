@@ -8,6 +8,9 @@ using Nancy.Helpers;
 using Newtonsoft.Json;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
+using Nancy.ModelBinding;
+using Nancy.Validation;
+using System.Collections.Generic;
 
 
 namespace JabbR.Nancy
@@ -49,7 +52,9 @@ namespace JabbR.Nancy
 
         public static void AddValidationError(this NancyModule module, string propertyName, string errorMessage)
         {
-            module.ModelValidationResult = module.ModelValidationResult.AddError(propertyName, errorMessage);
+            var errors = new List<ModelValidationError> { new ModelValidationError(propertyName, errorMessage) };
+            var validationResult = new ModelValidationResult(new[] { new KeyValuePair<string, IList<ModelValidationError>>(propertyName, errors) });
+            module.ModelValidationResult = validationResult;
         }
 
         public static AuthenticationResult GetAuthenticationResult(this NancyContext context)
