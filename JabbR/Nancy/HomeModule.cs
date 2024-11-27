@@ -12,172 +12,176 @@ using JabbR.Services;
 using JabbR.UploadHandlers;
 using JabbR.ViewModels;
 using Microsoft.AspNet.SignalR.Infrastructure;
-using Nancy;
+using Microsoft.AspNetCore.Mvc;
 using System.Text.Encodings.Web;
 
 namespace JabbR.Nancy
 {
-    public class HomeModule : JabbRModule
+    public class HomeController : Controller
     {
         private static readonly Regex clientSideResourceRegex = new Regex("^(Client_.*|Chat_.*|Content_.*|Create_.*|LoadingMessage|Room.*)$");
+        private readonly ApplicationSettings _settings;
+        private readonly IJabbrConfiguration _configuration;
+        private readonly IConnectionManager _connectionManager;
+        private readonly IJabbrRepository _jabbrRepository;
 
-        public HomeModule(ApplicationSettings settings,
-                          IJabbrConfiguration configuration,
-                          IConnectionManager connectionManager,
-                          IJabbrRepository jabbrRepository)
+        public HomeController(ApplicationSettings settings,
+                              IJabbrConfiguration configuration,
+                              IConnectionManager connectionManager,
+                              IJabbrRepository jabbrRepository)
         {
-            Get["/"] = _ =>
+            _settings = settings;
+            _configuration = configuration;
+            _connectionManager = connectionManager;
+            _jabbrRepository = jabbrRepository;
+        }
+
+        [HttpGet("/")]
+        public IActionResult Index()
+        {
+            if (User.Identity.IsAuthenticated)
             {
-                if (IsAuthenticated)
+                var viewModel = new SettingsViewModel
                 {
-                    var viewModel = new SettingsViewModel
-                    {
-                        GoogleAnalytics = settings.GoogleAnalytics,
-                        AppInsights = settings.AppInsights,
-                        Sha = configuration.DeploymentSha,
-                        Branch = configuration.DeploymentBranch,
-                        Time = configuration.DeploymentTime,
-                        DebugMode = (bool)Context.Items["_debugMode"],
-                        Version = Constants.JabbRVersion,
-                        IsAdmin = Principal.HasClaim(JabbRClaimTypes.Admin),
-                        ClientLanguageResources = BuildClientResources(),
-                        MaxMessageLength = settings.MaxMessageLength,
-                        AllowRoomCreation = settings.AllowRoomCreation || Principal.HasClaim(JabbRClaimTypes.Admin)
-                    };
+                    GoogleAnalytics = _settings.GoogleAnalytics,
+                    AppInsights = _settings.AppInsights,
+                    Sha = _configuration.DeploymentSha,
+                    Branch = _configuration.DeploymentBranch,
+                    Time = _configuration.DeploymentTime,
+                    DebugMode = (bool)HttpContext.Items["_debugMode"],
+                    Version = Constants.JabbRVersion,
+                    IsAdmin = User.HasClaim(JabbRClaimTypes.Admin, "true"),
+                    ClientLanguageResources = BuildClientResources(),
+                    MaxMessageLength = _settings.MaxMessageLength,
+                    AllowRoomCreation = _settings.AllowRoomCreation || User.HasClaim(JabbRClaimTypes.Admin, "true")
+                };
 
-                    return View["index", viewModel];
-                }
+                return View("index", viewModel);
+            }
 
-                if (Principal != null && Principal.HasPartialIdentity())
-                {
-                    // If the user is partially authenticated then take them to the register page
-                    return Response.AsRedirect("~/account/register");
-                }
-
-                return HttpStatusCode.Unauthorized;
-            };
-
-            Get["/monitor"] = _ =>
+            if (User.Identity.IsAuthenticated && User.HasPartialIdentity())
             {
-                ClaimsPrincipal principal = Principal;
+                // If the user is partially authenticated then take them to the register page
+                return RedirectToAction("Register", "Account");
+            }
 
-                if (principal == null ||
-                    !principal.HasClaim(JabbRClaimTypes.Admin))
-                {
-                    return HttpStatusCode.Forbidden;
-                }
+            return Unauthorized();
+        }
 
-                return View["monitor"];
-            };
-
-            Get["/status", runAsync: true] = async (_, token) =>
+        [HttpGet("/monitor")]
+        public IActionResult Monitor()
+        {
+            if (User.Identity.IsAuthenticated && User.HasClaim(JabbRClaimTypes.Admin, "true"))
             {
-                var model = new StatusViewModel();
+                return View("monitor");
+            }
 
-                // Try to send a message via SignalR
-                // NOTE: Ideally we'd like to actually receive a message that we send, but right now
-                // that would require a full client instance. SignalR 2.1.0 plans to add a feature to
-                // easily support this on the server.
-                var signalrStatus = new SystemStatus { SystemName = "SignalR messaging" };
-                model.Systems.Add(signalrStatus);
+            return Forbid();
+        }
 
-                try
+        [HttpGet("/status")]
+        public async Task<IActionResult> Status()
+        {
+            var model = new StatusViewModel();
+
+            // Try to send a message via SignalR
+            var signalrStatus = new SystemStatus { SystemName = "SignalR messaging" };
+            model.Systems.Add(signalrStatus);
+
+            try
+            {
+                var hubContext = _connectionManager.GetHubContext<Chat>();
+                await (Task)hubContext.Clients.Client("doesn't exist").noMethodCalledThis();
+
+                signalrStatus.SetOK();
+            }
+            catch (Exception ex)
+            {
+                signalrStatus.SetException(ex.GetBaseException());
+            }
+
+            // Try to talk to database
+            var dbStatus = new SystemStatus { SystemName = "Database" };
+            model.Systems.Add(dbStatus);
+
+            try
+            {
+                var roomCount = _jabbrRepository.Rooms.Count();
+                dbStatus.SetOK();
+            }
+            catch (Exception ex)
+            {
+                dbStatus.SetException(ex.GetBaseException());
+            }
+
+            // Try to talk to azure storage
+            var azureStorageStatus = new SystemStatus { SystemName = "Azure Upload storage" };
+            model.Systems.Add(azureStorageStatus);
+
+            try
+            {
+                if (!String.IsNullOrEmpty(_settings.AzureblobStorageConnectionString))
                 {
-                    var hubContext = connectionManager.GetHubContext<Chat>();
-                    await (Task)hubContext.Clients.Client("doesn't exist").noMethodCalledThis();
-                    
-                    signalrStatus.SetOK();
-                }
-                catch (Exception ex)
-                {
-                    signalrStatus.SetException(ex.GetBaseException());
-                }
-
-                // Try to talk to database
-                var dbStatus = new SystemStatus { SystemName = "Database" };
-                model.Systems.Add(dbStatus);
-
-                try
-                {
-                    var roomCount = jabbrRepository.Rooms.Count();
-                    dbStatus.SetOK();
-                }
-                catch (Exception ex)
-                {
-                    dbStatus.SetException(ex.GetBaseException());
-                }
-
-                // Try to talk to azure storage
-                var azureStorageStatus = new SystemStatus { SystemName = "Azure Upload storage" };
-                model.Systems.Add(azureStorageStatus);
-
-                try
-                {
-                    if (!String.IsNullOrEmpty(settings.AzureblobStorageConnectionString))
+                    var azure = new AzureBlobStorageHandler(_settings);
+                    UploadResult result;
+using (var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("test")))
                     {
-                        var azure = new AzureBlobStorageHandler(settings);
-                        UploadResult result;
-                        using (var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("test")))
-                        {
-                            result = await azure.UploadFile("statusCheck.txt", "text/plain", stream);
-                        }
-
-                        azureStorageStatus.SetOK();
+                        result = await azure.UploadFile("statusCheck.txt", "text/plain", stream);
                     }
-                    else
+
+                    azureStorageStatus.SetOK();
+                }
+                else
+                {
+                    azureStorageStatus.StatusMessage = "Not configured";
+                }
+            }
+            catch (Exception ex)
+            {
+                azureStorageStatus.SetException(ex.GetBaseException());
+            }
+
+            //try to talk to local storage
+            var localStorageStatus = new SystemStatus { SystemName = "Local Upload storage" };
+            model.Systems.Add(localStorageStatus);
+
+            try
+            {
+                if (!String.IsNullOrEmpty(_settings.LocalFileSystemStoragePath) && !String.IsNullOrEmpty(_settings.LocalFileSystemStorageUriPrefix))
+                {
+                    var local = new LocalFileSystemStorageHandler(_settings);
+                    UploadResult localResult;
+using (var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("test")))
                     {
-                        azureStorageStatus.StatusMessage = "Not configured";
+                        localResult = await local.UploadFile("statusCheck.txt", "text/plain", stream);
                     }
+
+                    localStorageStatus.SetOK();
                 }
-                catch (Exception ex)
+                else
                 {
-                    azureStorageStatus.SetException(ex.GetBaseException());
+                    localStorageStatus.StatusMessage = "Not configured";
                 }
+            }
+            catch (Exception ex)
+            {
+                localStorageStatus.SetException(ex.GetBaseException());
+            }
 
-                //try to talk to local storage
-                var localStorageStatus = new SystemStatus { SystemName = "Local Upload storage" };
-                model.Systems.Add(localStorageStatus);
+            // Force failure
+            if (HttpContext.Request.Query.ContainsKey("fail"))
+            {
+                var failedSystem = new SystemStatus { SystemName = "Forced failure" };
+                failedSystem.SetException(new ApplicationException("Forced failure for test purposes"));
+                model.Systems.Add(failedSystem);
+            }
 
-                try
-                {
-                    if (!String.IsNullOrEmpty(settings.LocalFileSystemStoragePath) && !String.IsNullOrEmpty(settings.LocalFileSystemStorageUriPrefix))
-                    {
-                        var local = new LocalFileSystemStorageHandler(settings);
-                        UploadResult localResult;
-                        using (var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("test")))
-                        {
-                            localResult = await local.UploadFile("statusCheck.txt", "text/plain", stream);
-                        }
+            if (!model.AllOK)
+            {
+                return StatusCode(500, View("status", model));
+            }
 
-                        localStorageStatus.SetOK();
-                    }
-                    else
-                    {
-                        localStorageStatus.StatusMessage = "Not configured";
-                    }
-                }
-                catch (Exception ex)
-                {
-                    localStorageStatus.SetException(ex.GetBaseException());
-                }
-
-                // Force failure
-                if (Context.Request.Query.fail)
-                {
-                    var failedSystem = new SystemStatus { SystemName = "Forced failure" };
-                    failedSystem.SetException(new ApplicationException("Forced failure for test purposes"));
-                    model.Systems.Add(failedSystem);
-                }
-
-                var view = View["status", model];
-
-                if (!model.AllOK)
-                {
-                    return view.WithStatusCode(HttpStatusCode.InternalServerError);
-                }
-
-                return view;
-            };
+            return View("status", model);
         }
 
         private static string BuildClientResources()
@@ -199,7 +203,7 @@ namespace JabbR.Nancy
                     catch (InvalidOperationException)
                     {
                         // The resource specified by name is not a String.
-                    }   
+                    }
                 }
             }
 
