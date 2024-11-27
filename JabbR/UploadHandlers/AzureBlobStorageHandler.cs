@@ -55,7 +55,7 @@ namespace JabbR.UploadHandlers
             CloudBlockBlob blockBlob = container.GetBlockBlobReference(randomFile);
             blockBlob.Properties.ContentType = contentType;
 
-            await Task.Factory.FromAsync((cb, state) => blockBlob.BeginUploadFromStream(stream, cb, state), ar => blockBlob.EndUploadFromStream(ar), null);
+            await blockBlob.UploadFromStreamAsync(stream);
 
             var result = new UploadResult
             {
