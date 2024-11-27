@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
+using System.Linq;
 using System.Security.Claims;
+using Nancy;
 using Nancy.Security;
 
 namespace JabbR.Nancy
@@ -15,14 +17,14 @@ namespace JabbR.Nancy
 
         public IEnumerable<string> Claims
         {
-            get;
-            set;
+            get => ClaimsPrincipal.Claims.Select(c => c.Type);
+            set { }
         }
 
         public string UserName
         {
-            get;
-            set;
+            get => ClaimsPrincipal.Identity?.Name;
+            set { }
         }
     }
 }
