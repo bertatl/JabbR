@@ -50,6 +50,27 @@ namespace JabbR.Nancy
             return _environment;
         }
 
+        protected override INancyEnvironmentConfigurator GetEnvironmentConfigurator()
+        {
+            return new JabbRNancyEnvironmentConfigurator(this);
+        }
+
+        private class JabbRNancyEnvironmentConfigurator : INancyEnvironmentConfigurator
+        {
+            private readonly JabbRNinjectNancyBootstrapper _bootstrapper;
+
+            public JabbRNancyEnvironmentConfigurator(JabbRNinjectNancyBootstrapper bootstrapper)
+            {
+                _bootstrapper = bootstrapper;
+            }
+
+            public void ConfigureEnvironment(Action<INancyEnvironment> configuration)
+            {
+                configuration(_bootstrapper._environment);
+                _bootstrapper.RegisterNancyEnvironment(_bootstrapper._kernel, _bootstrapper._environment);
+            }
+        }
+
         protected override void ApplicationStartup(IKernel container, IPipelines pipelines)
         {
             base.ApplicationStartup(container, pipelines);
