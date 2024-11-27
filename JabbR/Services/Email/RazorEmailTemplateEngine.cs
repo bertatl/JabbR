@@ -1,14 +1,13 @@
 using System;
-using System.CodeDom.Compiler;
 using System.Collections.Generic;
 using System.Dynamic;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Threading;
-using Microsoft.AspNetCore.Razor;
+using Microsoft.AspNetCore.Razor.Language;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using JabbR.Infrastructure;
-using Microsoft.CSharp;
 
 namespace JabbR.Services
 {
@@ -21,7 +20,7 @@ namespace JabbR.Services
         private const string NamespaceName = "JabbR.Views.EmailTemplates";
 
         private static readonly string[] _referencedAssemblies = BuildReferenceList().ToArray();
-        private static readonly RazorTemplateEngine _razorEngine = CreateRazorEngine();
+        private static readonly RazorProjectEngine _razorEngine = CreateRazorEngine();
         private static readonly Dictionary<string, IDictionary<string, Type>> _typeMapping = new Dictionary<string, IDictionary<string, Type>>(StringComparer.OrdinalIgnoreCase);
         private static readonly ReaderWriterLockSlim _syncLock = new ReaderWriterLockSlim();
 
@@ -247,35 +246,32 @@ namespace JabbR.Services
             return new DynamicModel(propertyMap);
         }
 
-        private static RazorTemplateEngine CreateRazorEngine()
+        private static RazorProjectEngine CreateRazorEngine()
         {
-            var host = new RazorEngineHost(new CSharpRazorCodeLanguage())
-                           {
-                               DefaultBaseClass = typeof(EmailTemplate).FullName,
-                               DefaultNamespace = NamespaceName
-                           };
+            var builder = RazorProjectEngine.Create(RazorConfiguration.Default, RazorProjectFileSystem.Create("."), b =>
+            {
+                b.SetNamespace(NamespaceName);
+                b.SetBaseType(typeof(EmailTemplate).FullName);
+                b.ConfigureClass((document, @class) =>
+                {
+                    @class.ClassName = document.Source.FilePath.Replace(".cshtml", string.Empty);
+                });
+            });
 
-            host.NamespaceImports.Add("System");
-            host.NamespaceImports.Add("System.Collections");
-            host.NamespaceImports.Add("System.Collections.Generic");
-            host.NamespaceImports.Add("System.Dynamic");
-            host.NamespaceImports.Add("System.Linq");
-
-            return new RazorTemplateEngine(host);
+            return builder;
         }
 
         private static IEnumerable<string> BuildReferenceList()
         {
-            string currentAssemblyLocation = typeof(RazorEmailTemplateEngine).Assembly.CodeBase.Replace("file:///", String.Empty).Replace("/", "\\");
-
             return new List<string>
-                       {
-                           "mscorlib.dll",
-                           "system.dll",
-                           "system.core.dll",
-                           "microsoft.csharp.dll",
-                           currentAssemblyLocation
-                       };
+            {
+                typeof(object).Assembly.Location,
+                typeof(Enumerable).Assembly.Location,
+                typeof(System.Runtime.AssemblyTargetedPatchBandAttribute).Assembly.Location,
+                typeof(Microsoft.CSharp.RuntimeBinder.CSharpArgumentInfo).Assembly.Location,
+                typeof(System.Dynamic.DynamicObject).Assembly.Location,
+                typeof(RazorEmailTemplateEngine).Assembly.Location
+            };
         }
     }
 }
