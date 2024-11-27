@@ -37,14 +37,11 @@ namespace JabbR.Nancy
             base.ConfigureApplicationContainer(existingContainer);
         }
 
-        protected override INancyEnvironmentConfigurator GetEnvironmentConfigurator()
+        protected override void RegisterNancyEnvironment(IKernel container, INancyEnvironment environment)
         {
-            return new DefaultNancyEnvironmentConfigurator(
-                x =>
-                {
-                    x.AddValue("Environment", "Development");
-                    _environment = x;
-                });
+            environment.AddValue("Environment", "Development");
+            container.Bind<INancyEnvironment>().ToConstant(environment);
+            _environment = environment;
         }
 
         public override INancyEnvironment GetEnvironment()
