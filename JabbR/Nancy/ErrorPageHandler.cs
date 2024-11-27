@@ -40,17 +40,18 @@ namespace JabbR.Nancy
                 }
             }
 
-            var response = RenderView(
-                context, 
-                "errorPage", 
-                new 
-                { 
-                    Error = statusCode,
-                    ErrorCode = (int)statusCode,
-                    SuggestRoomName = suggestRoomName
-                });
+            var model = new
+            {
+                Error = statusCode,
+                ErrorCode = (int)statusCode,
+                SuggestRoomName = suggestRoomName
+            };
 
-            response.StatusCode = statusCode;
+            var response = Negotiate
+                .WithModel(model)
+                .WithView("errorPage")
+                .WithStatusCode(statusCode);
+
             context.Response = response;
         }
     }
