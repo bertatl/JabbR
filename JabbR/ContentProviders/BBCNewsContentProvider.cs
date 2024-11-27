@@ -1,7 +1,8 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Text.RegularExpressions;
 using JabbR.ContentProviders.Core;
 using System.Threading.Tasks;
@@ -25,16 +26,16 @@ namespace JabbR.ContentProviders
             });
         }
 
-        private Task<PageInfo> ExtractFromResponse(ContentProviderHttpRequest request)
+        private async Task<PageInfo> ExtractFromResponse(ContentProviderHttpRequest request)
         {
-            return Http.GetAsync(request.RequestUri).Then(response =>
+using (var response = await Http.GetAsync(request.RequestUri))
             {
                 var info = new PageInfo();
-                using (var responseStream = response.GetResponseStream())
+using (var responseStream = await response.Content.ReadAsStreamAsync())
                 {
-                    using (var sr = new StreamReader(responseStream))
+using (var sr = new StreamReader(responseStream))
                     {
-                        var pageContext = WebUtility.HtmlDecode(sr.ReadToEnd());
+                        var pageContext = WebUtility.HtmlDecode(await sr.ReadToEndAsync());
                         info.Title = ExtractUsingRegex(new Regex(@"<meta\s.*property=""og:title"".*content=""(.*)"".*/>"), pageContext);
                         info.Description = ExtractUsingRegex(new Regex(@"<meta\s.*name=""Description"".*content=""(.*)"".*/>"), pageContext);
                         info.ImageURL = ExtractUsingRegex(new Regex(@"<meta.*property=""og:image"".*content=""(.*)"".*/>"), pageContext);
@@ -43,7 +44,7 @@ namespace JabbR.ContentProviders
                 }
 
                 return info;
-            });
+            }
         }
 
         private string ExtractUsingRegex(Regex regularExpression, string content)
