@@ -8,12 +8,12 @@ using Nancy.ViewEngines;
 
 namespace JabbR.Nancy
 {
-    public class ErrorPageHandler : ViewRenderer, IStatusCodeHandler
+    public class ErrorPageHandler : Nancy.ViewEngines.ViewRenderer, IStatusCodeHandler
     {
         private readonly IJabbrRepository _repository;
 
         public ErrorPageHandler(IViewFactory factory, IJabbrRepository repository)
-            : base(factory)
+            : base(factory, null)
         {
             _repository = repository;
         }
