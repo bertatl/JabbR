@@ -69,7 +69,7 @@ namespace JabbR.Nancy
                 return View["monitor"];
             };
 
-            Get["/status"] = async (parameters, token) =>
+            Get["/status", runAsync: true] = async (_, token) =>
             {
                 var model = new StatusViewModel();
 
