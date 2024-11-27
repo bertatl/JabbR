@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
@@ -6,7 +6,7 @@ using JabbR.ContentProviders.Core;
 using JabbR.Infrastructure;
 using JabbR.Services;
 using JabbR.UploadHandlers;
-using Microsoft.Security.Application;
+using System.Web;
 using Ninject;
 
 namespace JabbR.ContentProviders
@@ -86,8 +86,8 @@ namespace JabbR.ContentProviders
 
             return new ContentProviderResult()
             {
-                Content = String.Format(format, Encoder.HtmlAttributeEncode(href),
-                                                Encoder.HtmlAttributeEncode(imageUrl)),
+                Content = String.Format(format, HttpUtility.HtmlAttributeEncode(href),
+                                                HttpUtility.HtmlAttributeEncode(imageUrl)),
                 Title = href
             };
         }
