@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
 using JabbR.Infrastructure;
 using JabbR.Services;
 using JabbR.WebApi.Model;
@@ -23,7 +24,10 @@ namespace JabbR.WebApi
         /// <returns>A URL that corresponds to requested path using host and protocol of the request</returns>
         public string ToAbsoluteUrl(string sitePath)
         {
-            return Request.GetAbsoluteUri(sitePath).AbsoluteUri;
+            var request = HttpContext.Request;
+            var host = request.Host.ToUriComponent();
+            var scheme = request.Scheme;
+            return $"{scheme}://{host}{request.PathBase}{sitePath}";
         }
 
         public HttpResponseMessage GetFrontPage()
