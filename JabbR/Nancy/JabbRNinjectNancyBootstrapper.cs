@@ -14,6 +14,7 @@ using Nancy.Security;
 using Microsoft.Owin;
 
 using Ninject;
+using JabbR.Nancy; // Add this line to include the namespace containing ClaimsPrincipalUserIdentity
 
 namespace JabbR.Nancy
 {
