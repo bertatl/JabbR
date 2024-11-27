@@ -9,6 +9,8 @@ using System.Threading;
 using Microsoft.AspNetCore.Razor;
 using JabbR.Infrastructure;
 using Microsoft.CSharp;
+using System.Web.Razor;
+using System.Web.Razor.Generator;
 
 namespace JabbR.Services
 {
@@ -196,7 +198,11 @@ namespace JabbR.Services
 
         private static Assembly GenerateAssembly(params KeyValuePair<string, string>[] templates)
         {
-            var templateResults = templates.Select(pair => _razorEngine.GenerateCode(new StringReader(pair.Value), pair.Key, NamespaceName, pair.Key + ".cs")).ToList();
+var templateResults = templates.Select(pair =>
+{
+    var result = _razorEngine.GenerateCode(new StringReader(pair.Value), pair.Key, NamespaceName, pair.Key + ".cs");
+    return new { Key = pair.Key, GeneratedCode = result.GeneratedCode, ParserErrors = result.ParserErrors };
+}).ToList();
 
             if (templateResults.Any(result => result.ParserErrors.Any()))
             {
@@ -214,7 +220,16 @@ namespace JabbR.Services
                                                 CompilerOptions = "/optimize"
                                             };
 
-                var compilerResults = codeProvider.CompileAssemblyFromDom(compilerParameter, templateResults.Select(r => r.GeneratedCode).ToArray());
+var compilerResults = codeProvider.CompileAssemblyFromSource(compilerParameter, templateResults.Select(r => r.GeneratedCode.GetCodeCompileUnit()).Select(ccu => {
+using (var writer = new StringWriter())
+    {
+using (var provider = new CSharpCodeProvider())
+        {
+            provider.GenerateCodeFromCompileUnit(ccu, writer, new CodeGeneratorOptions());
+        }
+        return writer.GetStringBuilder().ToString();
+    }
+}).ToArray());
 
                 if (compilerResults.Errors.HasErrors)
                 {
@@ -247,22 +262,22 @@ namespace JabbR.Services
             return new DynamicModel(propertyMap);
         }
 
-        private static RazorTemplateEngine CreateRazorEngine()
-        {
-            var host = new RazorEngineHost(new CSharpRazorCodeLanguage())
-                           {
-                               DefaultBaseClass = typeof(EmailTemplate).FullName,
-                               DefaultNamespace = NamespaceName
-                           };
+private static RazorTemplateEngine CreateRazorEngine()
+{
+    var host = new RazorEngineHost(new CSharpRazorCodeLanguage())
+    {
+        DefaultBaseClass = typeof(EmailTemplate).FullName,
+        DefaultNamespace = NamespaceName
+    };
 
-            host.NamespaceImports.Add("System");
-            host.NamespaceImports.Add("System.Collections");
-            host.NamespaceImports.Add("System.Collections.Generic");
-            host.NamespaceImports.Add("System.Dynamic");
-            host.NamespaceImports.Add("System.Linq");
+    host.NamespaceImports.Add("System");
+    host.NamespaceImports.Add("System.Collections");
+    host.NamespaceImports.Add("System.Collections.Generic");
+    host.NamespaceImports.Add("System.Dynamic");
+    host.NamespaceImports.Add("System.Linq");
 
-            return new RazorTemplateEngine(host);
-        }
+    return new RazorTemplateEngine(host);
+}
 
         private static IEnumerable<string> BuildReferenceList()
         {
