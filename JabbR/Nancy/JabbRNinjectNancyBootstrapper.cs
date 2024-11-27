@@ -32,16 +32,33 @@ namespace JabbR.Nancy
             return _kernel;
         }
 
+        protected override Func<ITypeCatalog, NancyInternalConfiguration> GetInternalConfiguration()
+        {
+            return NancyInternalConfiguration.WithOverrides(c => c.ViewLocationProvider = typeof(ResourceViewLocationProvider));
+        }
+
         protected override void ConfigureApplicationContainer(IKernel existingContainer)
         {
             base.ConfigureApplicationContainer(existingContainer);
         }
 
-        protected override void RegisterNancyEnvironment(IKernel container, INancyEnvironment environment)
+        protected override Func<IConfiguration> GetConfiguration()
         {
-            environment.AddValue("Environment", "Development");
-            container.Bind<INancyEnvironment>().ToConstant(environment);
-            _environment = environment;
+            return () => new DefaultNancyConfiguration();
+        }
+
+        public override Action<INancyEnvironment> GetEnvironmentConfigurator()
+        {
+            return environment =>
+            {
+                environment.AddValue("Environment", "Development");
+                _environment = environment;
+            };
+        }
+
+        protected override void ConfigureApplicationContainer(IKernel existingContainer)
+        {
+            base.ConfigureApplicationContainer(existingContainer);
         }
 
         public override INancyEnvironment GetEnvironment()
