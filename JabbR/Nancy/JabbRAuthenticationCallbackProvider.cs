@@ -1,16 +1,15 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Security.Claims;
 using System.Text.RegularExpressions;
 
 using JabbR.Services;
-using Nancy;
-using Nancy.SimpleAuthentication;
-using SimpleAuthentication.Core;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Http;
 
 namespace JabbR.Nancy
 {
-    public class JabbRAuthenticationCallbackProvider : IAuthenticationCallbackProvider
+    public class JabbRAuthenticationCallbackProvider
     {
         private readonly IJabbrRepository _repository;
 
@@ -19,54 +18,32 @@ namespace JabbR.Nancy
             _repository = repository;
         }
 
-        public dynamic Process(NancyModule nancyModule, AuthenticateCallbackData model)
+        public async Task<IResult> ProcessAsync(HttpContext context, AuthenticateResult result)
         {
-            Response response;
-
-            if (model.ReturnUrl != null)
+            if (!result.Succeeded)
             {
-                response = nancyModule.Response.AsRedirect("~" + model.ReturnUrl);
-            }
-            else
-            {
-                response = nancyModule.AsRedirectQueryStringOrDefault("~/");
-
-                if (nancyModule.IsAuthenticated())
-                {
-                    response = nancyModule.AsRedirectQueryStringOrDefault("~/account/#identityProviders");
-                }
+                return Results.Redirect("/");
             }
 
-            if (model.Exception != null)
+            var principal = result.Principal;
+            var claims = new List<Claim>(principal.Claims);
+
+            var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier);
+            var providerName = principal.FindFirstValue(ClaimTypes.AuthenticationMethod);
+
+            if (!string.IsNullOrEmpty(userId))
             {
-                nancyModule.Request.AddAlertMessage("error", model.Exception.Message);
-            }
-            else
-            {
-                UserInformation information = model.AuthenticatedClient.UserInformation;
-                var claims = new List<Claim>();
-                claims.Add(new Claim(ClaimTypes.NameIdentifier, information.Id));
-                claims.Add(new Claim(ClaimTypes.AuthenticationMethod, model.AuthenticatedClient.ProviderName));
-
-                if (!String.IsNullOrEmpty(information.UserName))
-                {
-                    claims.Add(new Claim(ClaimTypes.Name, information.UserName));
-                }
-
-                if (!String.IsNullOrEmpty(information.Email))
-                {
-                    claims.Add(new Claim(ClaimTypes.Email, information.Email));
-                }
-
-                nancyModule.SignIn(claims);
+                claims.Add(new Claim(ClaimTypes.NameIdentifier, userId));
             }
 
-            return response;
-        }
+            if (!string.IsNullOrEmpty(providerName))
+            {
+                claims.Add(new Claim(ClaimTypes.AuthenticationMethod, providerName));
+            }
 
-        public dynamic OnRedirectToAuthenticationProviderError(NancyModule nancyModule, string errorMessage)
-        {
-            return null;
+            await context.SignInAsync(new ClaimsPrincipal(new ClaimsIdentity(claims, "ExternalLogin")));
+
+            return Results.Redirect("/account/#identityProviders");
         }
     }
 }
