@@ -4,6 +4,7 @@ using JabbR.Services;
 
 using Nancy;
 using Nancy.ErrorHandling;
+using Nancy.Responses;
 using Nancy.ViewEngines;
 
 namespace JabbR.Nancy
@@ -41,15 +42,17 @@ namespace JabbR.Nancy
                 }
             }
 
-            var response = _module.View["errorPage", new
+            var model = new
             {
                 Error = statusCode,
                 ErrorCode = (int)statusCode,
                 SuggestRoomName = suggestRoomName
-            }];
+            };
+
+            var response = (Response)_module.View["errorPage", model];
+            response.StatusCode = statusCode;
 
             context.Response = response;
-            context.Response.StatusCode = statusCode;
         }
     }
 }
