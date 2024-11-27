@@ -20,17 +20,12 @@ namespace JabbR.Nancy
     {
         private static readonly Regex clientSideResourceRegex = new Regex("^(Client_.*|Chat_.*|Content_.*|Create_.*|LoadingMessage|Room.*)$");
 
-        private dynamic Route(string path)
-        {
-            return new DynamicDictionary() { [path] = null };
-        }
-
         public HomeModule(ApplicationSettings settings,
                           IJabbrConfiguration configuration,
                           IConnectionManager connectionManager,
                           IJabbrRepository jabbrRepository)
         {
-            Get[Route("/")] = _ =>
+            Get["/"] = _ =>
             {
                 if (IsAuthenticated)
                 {
@@ -61,7 +56,7 @@ namespace JabbR.Nancy
                 return HttpStatusCode.Unauthorized;
             };
 
-            Get[Route("/monitor")] = _ =>
+            Get["/monitor"] = _ =>
             {
                 ClaimsPrincipal principal = Principal;
 
@@ -74,7 +69,7 @@ namespace JabbR.Nancy
                 return View["monitor"];
             };
 
-            Get[Route("/status")] = async (_, token) =>
+            Get["/status", runAsync: true] = async (_, token) =>
             {
                 var model = new StatusViewModel();
 
