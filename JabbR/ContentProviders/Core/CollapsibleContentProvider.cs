@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Web;
+using System.Net;
 
 namespace JabbR.ContentProviders.Core
 {
@@ -16,7 +17,7 @@ namespace JabbR.ContentProviders.Core
             {
                 if (GetIsCollapsible(request.RequestUri) && result != null)
                 {
-                    string contentTitle = String.Format(LanguageResources.Content_HeaderAndToggle, Encoder.HtmlEncode(result.Title));
+                    string contentTitle = String.Format(LanguageResources.Content_HeaderAndToggle, WebUtility.HtmlEncode(result.Title));
                     result.Content = String.Format(ContentFormat, contentTitle, result.Content);
                 }
 
