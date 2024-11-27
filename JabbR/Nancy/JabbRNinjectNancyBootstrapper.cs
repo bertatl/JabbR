@@ -45,20 +45,28 @@ namespace JabbR.Nancy
             _environment = environment;
         }
 
-        public override INancyEnvironment GetEnvironment()
+    public override INancyEnvironment GetEnvironment()
+    {
+        return _environment;
+    }
+
+    protected override Action<INancyEnvironment> GetEnvironmentConfigurator()
+    {
+        return environment =>
         {
-            return _environment;
-        }
+            environment.AddValue("Environment", "Development");
+        };
+    }
 
-        protected override void ApplicationStartup(IKernel container, IPipelines pipelines)
-        {
-            base.ApplicationStartup(container, pipelines);
+    protected override void ApplicationStartup(IKernel container, IPipelines pipelines)
+    {
+        base.ApplicationStartup(container, pipelines);
 
-            Csrf.Enable(pipelines);
+        Csrf.Enable(pipelines);
 
-            pipelines.BeforeRequest.AddItemToStartOfPipeline(FlowPrincipal);
-            pipelines.BeforeRequest.AddItemToStartOfPipeline(SetCulture);
-        }
+        pipelines.BeforeRequest.AddItemToStartOfPipeline(FlowPrincipal);
+        pipelines.BeforeRequest.AddItemToStartOfPipeline(SetCulture);
+    }
 
         private Response FlowPrincipal(NancyContext context)
         {
