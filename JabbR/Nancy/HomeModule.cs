@@ -13,6 +13,7 @@ using JabbR.UploadHandlers;
 using JabbR.ViewModels;
 using Microsoft.AspNet.SignalR.Infrastructure;
 using Nancy;
+using System.Text.Encodings.Web;
 
 namespace JabbR.Nancy
 {
@@ -202,7 +203,7 @@ namespace JabbR.Nancy
                 }
             }
 
-            return String.Join(",", resourcesToEmbed.Select(e => string.Format("'{0}': {1}", e.Key, Encoder.JavaScriptEncode(e.Value))));
+            return String.Join(",", resourcesToEmbed.Select(e => string.Format("'{0}': {1}", e.Key, JavaScriptEncoder.Default.Encode(e.Value))));
         }
     }
 }
