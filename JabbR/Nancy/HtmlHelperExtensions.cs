@@ -62,7 +62,7 @@ namespace JabbR
             }
             summaryBuilder.Append(@"</ul>");
 
-            return new NonEncodedHtmlString(summaryBuilder.ToString());
+            return new HtmlString(summaryBuilder.ToString());
         }
 
         public static IHtmlContent ValidationMessage<TModel>(this IHtmlHelper<TModel> htmlHelper, string propertyName)
