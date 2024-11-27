@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using HtmlAgilityPack;
@@ -19,30 +19,28 @@ namespace JabbR.ContentProviders
 
         private static readonly string[] WhiteListHtml = new[] { "br", "#text" };
 
-        protected override Task<ContentProviderResult> GetCollapsibleContent(ContentProviderHttpRequest request)
+        protected override async Task<ContentProviderResult> GetCollapsibleContent(ContentProviderHttpRequest request)
         {
-            return ExtractFromResponse(request).Then(pageInfo =>
+            var pageInfo = await ExtractFromResponse(request);
+            if (pageInfo == null)
             {
-                if (pageInfo == null)
-                {
-                    return null;
-                }
+                return null;
+            }
 
-                return new ContentProviderResult
-                {
-                    Content = String.Format(ContentFormat, pageInfo.PageURL, pageInfo.QuoteNumber, pageInfo.Quote),
-                    Title = pageInfo.PageURL
-                };
-            });
+            return new ContentProviderResult
+            {
+                Content = String.Format(ContentFormat, pageInfo.PageURL, pageInfo.QuoteNumber, pageInfo.Quote),
+                Title = pageInfo.PageURL
+            };
         }
 
-        private Task<PageInfo> ExtractFromResponse(ContentProviderHttpRequest request)
+        private async Task<PageInfo> ExtractFromResponse(ContentProviderHttpRequest request)
         {
-            return Http.GetAsync(request.RequestUri).Then(response =>
+using (var response = await Http.GetAsync(request.RequestUri))
             {
                 var info = new PageInfo();
 
-                using (var responseStream = response.GetResponseStream())
+using (var responseStream = await response.Content.ReadAsStreamAsync())
                 {
                     var htmlDocument = new HtmlDocument();
                     htmlDocument.Load(responseStream);
@@ -66,12 +64,12 @@ namespace JabbR.ContentProviders
                     SanitizeHtml(quote);
 
                     info.Quote = quote.InnerHtml;
-                    info.PageURL = response.ResponseUri.AbsoluteUri;
+                    info.PageURL = response.RequestMessage.RequestUri.AbsoluteUri;
                     info.QuoteNumber = title.InnerHtml;
                 }
 
                 return info;
-            });
+            }
         }
 
         private void SanitizeHtml(HtmlNode quote)
