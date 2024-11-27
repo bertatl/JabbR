@@ -41,14 +41,14 @@ namespace JabbR.Nancy
                 }
             }
 
-            var negotiator = _module.View["errorPage", new
+            var response = _module.View["errorPage", new
             {
                 Error = statusCode,
                 ErrorCode = (int)statusCode,
                 SuggestRoomName = suggestRoomName
             }];
 
-            context.Response = (Nancy.Response)negotiator;
+            context.Response = response;
             context.Response.StatusCode = statusCode;
         }
     }
