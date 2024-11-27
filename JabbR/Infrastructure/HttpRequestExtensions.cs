@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using JabbR.WebApi.Model;
 
@@ -63,10 +64,13 @@ namespace JabbR.Infrastructure
         /// <returns>HttpResponseMessage that wraps the given payload</returns>
         public static HttpResponseMessage CreateJabbrErrorMessage(this HttpRequestMessage request, HttpStatusCode statusCode, string message, string filenamePrefix)
         {
-            var responseMessage = request.CreateResponse(
-                statusCode, 
-                new ErrorModel { Message = message }, 
-                new MediaTypeHeaderValue("application/json"));
+            var responseMessage = new HttpResponseMessage(statusCode)
+            {
+                Content = new StringContent(
+                    System.Text.Json.JsonSerializer.Serialize(new ErrorModel { Message = message }),
+                    System.Text.Encoding.UTF8,
+                    "application/json")
+            };
 
             return AddResponseHeaders(request, responseMessage, filenamePrefix);
         }
