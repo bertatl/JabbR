@@ -104,7 +104,7 @@ namespace JabbR.Nancy
                 return response;
             });
 
-            Get["/register"] = _ =>
+            Get("/register", _ =>
             {
                 if (IsAuthenticated)
                 {
@@ -122,9 +122,9 @@ namespace JabbR.Nancy
                 ViewBag.requirePassword = requirePassword;
 
                 return View["register"];
-            };
+            });
 
-            Post["/create"] = _ =>
+            Post("/create", _ =>
             {
                 if (!HasValidCsrfTokenOrSecHeader)
                 {
@@ -201,7 +201,7 @@ namespace JabbR.Nancy
                 }
 
                 return View["register"];
-            };
+            });
 
             Post["/unlink"] = param =>
             {
