@@ -25,7 +25,7 @@ namespace JabbR.Nancy
                           IConnectionManager connectionManager,
                           IJabbrRepository jabbrRepository)
         {
-            Get["/"] = _ =>
+            base.Get["/"] = _ =>
             {
                 if (IsAuthenticated)
                 {
@@ -56,7 +56,7 @@ namespace JabbR.Nancy
                 return HttpStatusCode.Unauthorized;
             };
 
-            Get["/monitor"] = _ =>
+            base.Get["/monitor"] = _ =>
             {
                 ClaimsPrincipal principal = Principal;
 
@@ -69,7 +69,7 @@ namespace JabbR.Nancy
                 return View["monitor"];
             };
 
-            Get["/status", runAsync: true] = async (_, token) =>
+            base.Get["/status", runAsync: true] = async (_, token) =>
             {
                 var model = new StatusViewModel();
 
