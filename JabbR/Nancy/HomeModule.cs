@@ -20,38 +20,29 @@ namespace JabbR.Nancy
     public class HomeModule : JabbRModule
     {
         private static readonly Regex clientSideResourceRegex = new Regex("^(Client_.*|Chat_.*|Content_.*|Create_.*|LoadingMessage|Room.*)$");
-        private readonly ApplicationSettings _settings;
-        private readonly IJabbrConfiguration _configuration;
-        private readonly IConnectionManager _connectionManager;
-        private readonly IJabbrRepository _jabbrRepository;
 
         public HomeModule(ApplicationSettings settings,
                           IJabbrConfiguration configuration,
                           IConnectionManager connectionManager,
                           IJabbrRepository jabbrRepository)
         {
-            _settings = settings;
-            _configuration = configuration;
-            _connectionManager = connectionManager;
-            _jabbrRepository = jabbrRepository;
-
             Get["/"] = _ =>
             {
                 if (IsAuthenticated)
                 {
                     var viewModel = new SettingsViewModel
                     {
-                        GoogleAnalytics = _settings.GoogleAnalytics,
-                        AppInsights = _settings.AppInsights,
-                        Sha = _configuration.DeploymentSha,
-                        Branch = _configuration.DeploymentBranch,
-                        Time = _configuration.DeploymentTime,
+                        GoogleAnalytics = settings.GoogleAnalytics,
+                        AppInsights = settings.AppInsights,
+                        Sha = configuration.DeploymentSha,
+                        Branch = configuration.DeploymentBranch,
+                        Time = configuration.DeploymentTime,
                         DebugMode = (bool)Context.Items["_debugMode"],
                         Version = Constants.JabbRVersion,
                         IsAdmin = Principal.HasClaim(JabbRClaimTypes.Admin),
                         ClientLanguageResources = BuildClientResources(),
-                        MaxMessageLength = _settings.MaxMessageLength,
-                        AllowRoomCreation = _settings.AllowRoomCreation || Principal.HasClaim(JabbRClaimTypes.Admin)
+                        MaxMessageLength = settings.MaxMessageLength,
+                        AllowRoomCreation = settings.AllowRoomCreation || Principal.HasClaim(JabbRClaimTypes.Admin)
                     };
 
                     return View["index", viewModel];
@@ -79,19 +70,22 @@ namespace JabbR.Nancy
                 return View["monitor"];
             };
 
-            Get["/status"] = async (_, ct) =>
+            Get["/status", runAsync: true] = async (_, token) =>
             {
                 var model = new StatusViewModel();
 
                 // Try to send a message via SignalR
+                // NOTE: Ideally we'd like to actually receive a message that we send, but right now
+                // that would require a full client instance. SignalR 2.1.0 plans to add a feature to
+                // easily support this on the server.
                 var signalrStatus = new SystemStatus { SystemName = "SignalR messaging" };
                 model.Systems.Add(signalrStatus);
 
                 try
                 {
-                    var hubContext = _connectionManager.GetHubContext<Chat>();
-                    await hubContext.Clients.Client("doesn't exist").noMethodCalledThis();
-
+                    var hubContext = connectionManager.GetHubContext<Chat>();
+                    await (Task)hubContext.Clients.Client("doesn't exist").noMethodCalledThis();
+                    
                     signalrStatus.SetOK();
                 }
                 catch (Exception ex)
@@ -105,7 +99,7 @@ namespace JabbR.Nancy
 
                 try
                 {
-                    var roomCount = _jabbrRepository.Rooms.Count();
+                    var roomCount = jabbrRepository.Rooms.Count();
                     dbStatus.SetOK();
                 }
                 catch (Exception ex)
@@ -119,11 +113,11 @@ namespace JabbR.Nancy
 
                 try
                 {
-                    if (!String.IsNullOrEmpty(_settings.AzureblobStorageConnectionString))
+                    if (!String.IsNullOrEmpty(settings.AzureblobStorageConnectionString))
                     {
-                        var azure = new AzureBlobStorageHandler(_settings);
+                        var azure = new AzureBlobStorageHandler(settings);
                         UploadResult result;
-using (var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("test")))
+                        using (var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("test")))
                         {
                             result = await azure.UploadFile("statusCheck.txt", "text/plain", stream);
                         }
@@ -146,11 +140,11 @@ using (var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("test"))
 
                 try
                 {
-                    if (!String.IsNullOrEmpty(_settings.LocalFileSystemStoragePath) && !String.IsNullOrEmpty(_settings.LocalFileSystemStorageUriPrefix))
+                    if (!String.IsNullOrEmpty(settings.LocalFileSystemStoragePath) && !String.IsNullOrEmpty(settings.LocalFileSystemStorageUriPrefix))
                     {
-                        var local = new LocalFileSystemStorageHandler(_settings);
+                        var local = new LocalFileSystemStorageHandler(settings);
                         UploadResult localResult;
-using (var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("test")))
+                        using (var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("test")))
                         {
                             localResult = await local.UploadFile("statusCheck.txt", "text/plain", stream);
                         }
@@ -168,7 +162,7 @@ using (var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("test"))
                 }
 
                 // Force failure
-                if (Request.Query["fail"].HasValue)
+                if (Context.Request.Query.fail)
                 {
                     var failedSystem = new SystemStatus { SystemName = "Forced failure" };
                     failedSystem.SetException(new ApplicationException("Forced failure for test purposes"));
