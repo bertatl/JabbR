@@ -14,6 +14,7 @@ using Nancy.Security;
 using Microsoft.Owin;
 
 using Ninject;
+using JabbR.Nancy;
 
 namespace JabbR.Nancy
 {
