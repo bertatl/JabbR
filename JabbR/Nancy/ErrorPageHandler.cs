@@ -41,15 +41,20 @@ namespace JabbR.Nancy
                 }
             }
 
-            var response = _module.View["errorPage", new
+            dynamic viewModel = new
             {
                 Error = statusCode,
                 ErrorCode = (int)statusCode,
                 SuggestRoomName = suggestRoomName
-            }];
+            };
 
-            context.Response = response;
-            context.Response.StatusCode = statusCode;
+            var response = _module.View["errorPage", viewModel];
+
+            if (response is Nancy.Response nancyResponse)
+            {
+                nancyResponse.StatusCode = statusCode;
+                context.Response = nancyResponse;
+            }
         }
     }
 }
