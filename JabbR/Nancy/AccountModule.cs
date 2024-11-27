@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -22,7 +22,7 @@ namespace JabbR.Nancy
                              IEmailService emailService)
             : base("/account")
         {
-            Get["/"] = _ =>
+            Get("/", _ =>
             {
                 if (!IsAuthenticated)
                 {
@@ -32,9 +32,9 @@ namespace JabbR.Nancy
                 ChatUser user = repository.GetUserById(Principal.GetUserId());
 
                 return GetProfileView(authService, user);
-            };
+            });
 
-            Get["/login"] = _ =>
+            Get("/login", _ =>
             {
                 if (IsAuthenticated)
                 {
@@ -42,9 +42,9 @@ namespace JabbR.Nancy
                 }
 
                 return View["login", GetLoginViewModel(applicationSettings, repository, authService)];
-            };
+            });
 
-            Post["/login"] = param =>
+            Post("/login", param =>
             {
                 if (!HasValidCsrfTokenOrSecHeader)
                 {
@@ -82,13 +82,13 @@ namespace JabbR.Nancy
                 }
                 catch
                 {
-                    // Swallow the exception    
+                    // Swallow the exception
                 }
 
                 this.AddValidationError("_FORM", LanguageResources.Authentication_GenericFailure);
 
                 return View["login", GetLoginViewModel(applicationSettings, repository, authService)];
-            };
+            });
 
             Post["/logout"] = _ =>
             {
