@@ -5,7 +5,6 @@ using JabbR.Services;
 using Nancy;
 using Nancy.ErrorHandling;
 using Nancy.ViewEngines;
-using Nancy.Responses;
 
 namespace JabbR.Nancy
 {
@@ -13,13 +12,11 @@ namespace JabbR.Nancy
     {
         private readonly IJabbrRepository _repository;
         private readonly INancyModule _module;
-        private readonly IViewRenderer _viewRenderer;
 
-        public ErrorPageHandler(INancyModule module, IJabbrRepository repository, IViewRenderer viewRenderer)
+        public ErrorPageHandler(INancyModule module, IJabbrRepository repository)
         {
             _module = module;
             _repository = repository;
-            _viewRenderer = viewRenderer;
         }
 
         public bool HandlesStatusCode(HttpStatusCode statusCode, NancyContext context)
@@ -44,22 +41,15 @@ namespace JabbR.Nancy
                 }
             }
 
-            var viewModel = new
+            var response = _module.View["errorPage", new
             {
                 Error = statusCode,
                 ErrorCode = (int)statusCode,
                 SuggestRoomName = suggestRoomName
-            };
-
-            var response = new HtmlResponse(
-                contents: stream =>
-                {
-                    return _viewRenderer.RenderView("errorPage", viewModel, context);
-                },
-                statusCode: statusCode
-            );
+            }];
 
             context.Response = response;
+            context.Response.StatusCode = statusCode;
         }
     }
 }
