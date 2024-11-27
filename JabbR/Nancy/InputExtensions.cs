@@ -1,11 +1,17 @@
 using System;
 using System.Linq;
+using System.Collections.Generic;
 using Nancy.ViewEngines.Razor;
 
 namespace JabbR
 {
     public static class InputExtensions
     {
+        private static bool HasErrorForProperty<TModel>(this HtmlHelpers<TModel> htmlHelper, string propertyName)
+        {
+            var modelErrors = htmlHelper.RenderContext.Context.ModelValidationResult as IDictionary<string, IList<string>>;
+            return modelErrors != null && modelErrors.ContainsKey(propertyName);
+        }
         public static IHtmlString TextBox<TModel>(this HtmlHelpers<TModel> htmlHelper, string propertyName)
         {
             return TextBox(htmlHelper, propertyName, String.Empty);
@@ -39,7 +45,7 @@ namespace JabbR
         private const string InputTemplate = @"<input type=""{0}"" id=""{1}"" name=""{2}"" value=""{3}"" class=""{4}"" placeholder=""{5}"" />";
         private static IHtmlString InputHelper<TModel>(HtmlHelpers<TModel> htmlHelper, string inputType, string propertyName, string value, string className, string placeholder)
         {
-            bool hasError = htmlHelper.GetErrorsForProperty(propertyName).Any();
+            bool hasError = HasErrorForProperty(htmlHelper, propertyName);
 
             return new NonEncodedHtmlString(String.Format(InputTemplate, inputType, propertyName, propertyName, value, hasError ? String.Format("{0} {1}", className, "error").Trim() : className, placeholder));
         }
