@@ -50,6 +50,17 @@ namespace JabbR.Nancy
             return _environment;
         }
 
+        protected override Func<IKernel, INancyEnvironment, Task<INancyEnvironment>> GetEnvironmentConfigurator()
+        {
+            return (kernel, environment) =>
+            {
+                environment.AddValue("Environment", "Development");
+                kernel.Bind<INancyEnvironment>().ToConstant(environment);
+                _environment = environment;
+                return Task.FromResult(environment);
+            };
+        }
+
         protected override void ApplicationStartup(IKernel container, IPipelines pipelines)
         {
             base.ApplicationStartup(container, pipelines);
