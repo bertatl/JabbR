@@ -87,19 +87,18 @@ namespace JabbR.Nancy
 
         public static ClaimsPrincipal GetPrincipal(this NancyModule module)
         {
-            var userIdentity = module.Context.CurrentUser as ClaimsPrincipalUserIdentity;
-
-            if (userIdentity == null)
+            if (module.Context.CurrentUser is ClaimsPrincipal claimsPrincipal)
             {
-                return null;
+                return claimsPrincipal;
             }
 
-            return userIdentity.ClaimsPrincipal;
+            return null;
         }
 
         public static bool IsAuthenticated(this NancyModule module)
         {
-            return module.GetPrincipal().IsAuthenticated();
+            var principal = module.GetPrincipal();
+            return principal != null && principal.Identity.IsAuthenticated;
         }
 
         public static Response AsRedirectQueryStringOrDefault(this NancyModule module, string defaultUrl)
