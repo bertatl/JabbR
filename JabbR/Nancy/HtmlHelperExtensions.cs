@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -8,12 +8,13 @@ using Nancy.Validation;
 using Nancy.ViewEngines.Razor;
 using PagedList;
 using AntiXSS = Microsoft.Security.Application;
+using Microsoft.AspNetCore.Html;
 
 namespace JabbR
 {
     public static class HtmlHelperExtensions
     {
-        public static IHtmlString CheckBox<T>(this HtmlHelpers<T> helper, string Name, bool value)
+        public static IHtmlContent CheckBox<T>(this HtmlHelpers<T> helper, string Name, bool value)
         {
             string input = String.Empty;
             
@@ -42,7 +43,7 @@ namespace JabbR
             return new NonEncodedHtmlString(checkBoxBuilder.ToString());
         }
 
-        public static IHtmlString ValidationSummary<TModel>(this HtmlHelpers<TModel> htmlHelper)
+        public static IHtmlContent ValidationSummary<TModel>(this HtmlHelpers<TModel> htmlHelper)
         {
             var validationResult = htmlHelper.RenderContext.Context.ModelValidationResult;
             if (validationResult.IsValid)
@@ -65,7 +66,7 @@ namespace JabbR
             return new NonEncodedHtmlString(summaryBuilder.ToString());
         }
 
-        public static IHtmlString ValidationMessage<TModel>(this HtmlHelpers<TModel> htmlHelper, string propertyName)
+        public static IHtmlContent ValidationMessage<TModel>(this HtmlHelpers<TModel> htmlHelper, string propertyName)
         {
             var errorsForField = htmlHelper.GetErrorsForProperty(propertyName).ToList();
 
@@ -77,7 +78,7 @@ namespace JabbR
             return new NonEncodedHtmlString(errorsForField.First().GetMessage(propertyName));
         }
 
-        public static IHtmlString AlertMessages<TModel>(this HtmlHelpers<TModel> htmlHelper)
+        public static IHtmlContent AlertMessages<TModel>(this HtmlHelpers<TModel> htmlHelper)
         {
             const string message = @"<div class=""alert alert-{0}"">{1}</div>";
             var alertsDynamicValue = htmlHelper.RenderContext.Context.ViewBag.Alerts;
@@ -114,7 +115,7 @@ namespace JabbR
             return errorsForField;
         }
 
-        public static IHtmlString SimplePager<TModel>(this HtmlHelpers<TModel> htmlHelper, IPagedList pagedList, string baseUrl)
+        public static IHtmlContent SimplePager<TModel>(this HtmlHelpers<TModel> htmlHelper, IPagedList pagedList, string baseUrl)
         {
             var pagerBuilder = new StringBuilder();
 
@@ -135,7 +136,7 @@ namespace JabbR
             return new NonEncodedHtmlString(pagerBuilder.ToString());
         }
 
-        public static IHtmlString DisplayNoneIf<TModel>(this HtmlHelpers<TModel> htmlHelper, Expression<Func<TModel, bool>> expression)
+        public static IHtmlContent DisplayNoneIf<TModel>(this HtmlHelpers<TModel> htmlHelper, Expression<Func<TModel, bool>> expression)
         {
             if (expression.Compile()(htmlHelper.Model))
             {
