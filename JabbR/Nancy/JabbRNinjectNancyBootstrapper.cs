@@ -15,7 +15,6 @@ using Microsoft.Owin;
 
 using Ninject;
 using JabbR.Nancy;
-using System.Collections.Generic;
 
 namespace JabbR.Nancy
 {
@@ -49,14 +48,6 @@ namespace JabbR.Nancy
         public override INancyEnvironment GetEnvironment()
         {
             return _environment;
-        }
-
-        protected override INancyEnvironmentConfigurator GetEnvironmentConfigurator()
-        {
-            return new DefaultNancyEnvironmentConfigurator(
-                new DefaultNancyEnvironmentFactory(),
-                new List<INancyDefaultConfigurationProvider>()
-            );
         }
 
         protected override void ApplicationStartup(IKernel container, IPipelines pipelines)
