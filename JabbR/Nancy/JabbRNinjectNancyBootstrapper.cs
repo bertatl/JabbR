@@ -19,6 +19,7 @@ namespace JabbR.Nancy
     public class JabbRNinjectNancyBootstrapper : NinjectNancyBootstrapper
     {
         private readonly IKernel _kernel;
+        private INancyEnvironment _environment;
 
         public JabbRNinjectNancyBootstrapper(IKernel kernel)
         {
@@ -39,6 +40,12 @@ namespace JabbR.Nancy
         {
             environment.AddValue("Environment", "Development");
             container.Bind<INancyEnvironment>().ToConstant(environment);
+            _environment = environment;
+        }
+
+        public override INancyEnvironment GetEnvironment()
+        {
+            return _environment;
         }
 
         protected override void ApplicationStartup(IKernel container, IPipelines pipelines)
