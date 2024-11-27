@@ -14,6 +14,7 @@ using Nancy.Security;
 using Microsoft.Owin;
 
 using Ninject;
+using JabbR.Nancy;
 
 namespace JabbR.Nancy
 {
@@ -67,7 +68,7 @@ namespace JabbR.Nancy
                 var principal = Get<IPrincipal>(env, "server.User") as ClaimsPrincipal;
                 if (principal != null)
                 {
-                    context.CurrentUser = new ClaimsPrincipalUserIdentity(principal);
+                    context.CurrentUser = principal;
                 }
 
                 var appMode = Get<string>(env, "host.AppMode");
