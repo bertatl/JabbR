@@ -5,17 +5,18 @@ using System.Threading.Tasks;
 using JabbR.Models;
 using JabbR.Services;
 using Newtonsoft.Json;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
-
-using Microsoft.AspNetCore.Owin;
-
+using Microsoft.AspNetCore.Http;
 
 namespace JabbR.Infrastructure
 {
-    public class JabbRFormsAuthenticationProvider : ICookieAuthenticationProvider
+    public class JabbRFormsAuthenticationProvider : IAuthenticationSignInHandler
     {
         private readonly IJabbrRepository _repository;
         private readonly IMembershipService _membershipService;
+        private AuthenticationScheme _scheme;
+        private HttpContext _context;
 
         public JabbRFormsAuthenticationProvider(IJabbrRepository repository, IMembershipService membershipService)
         {
@@ -23,52 +24,69 @@ namespace JabbR.Infrastructure
             _membershipService = membershipService;
         }
 
-        public Task ValidateIdentity(CookieValidateIdentityContext context)
+        public Task InitializeAsync(AuthenticationScheme scheme, HttpContext context)
         {
-            return TaskAsyncHelper.Empty;
+            _scheme = scheme;
+            _context = context;
+            return Task.CompletedTask;
         }
 
-        public void ResponseSignIn(CookieResponseSignInContext context)
+        public Task<AuthenticateResult> AuthenticateAsync()
+        {
+            // Implement authentication logic here
+            return Task.FromResult(AuthenticateResult.NoResult());
+        }
+
+        public Task ChallengeAsync(AuthenticationProperties properties)
+        {
+            // Implement challenge logic here
+            return Task.CompletedTask;
+        }
+
+        public Task ForbidAsync(AuthenticationProperties properties)
+        {
+            // Implement forbid logic here
+            return Task.CompletedTask;
+        }
+
+        public Task SignInAsync(ClaimsPrincipal user, AuthenticationProperties properties)
         {
             var authResult = new AuthenticationResult
             {
                 Success = true
             };
 
-            ChatUser loggedInUser = GetLoggedInUser(context);
-
-            var principal = new ClaimsPrincipal(context.Identity);
+            ChatUser loggedInUser = GetLoggedInUser(user);
 
             // Do nothing if it's authenticated
-            if (principal.IsAuthenticated())
+            if (user.Identity.IsAuthenticated)
             {
-                EnsurePersistentCookie(context);
-                return;
+                EnsurePersistentCookie(properties);
+                return Task.CompletedTask;
             }
 
-            ChatUser user = _repository.GetUser(principal);
-            authResult.ProviderName = principal.GetIdentityProvider();
+            ChatUser chatUser = _repository.GetUser(user);
+            authResult.ProviderName = user.Identity.AuthenticationType;
 
             // The user exists so add the claim
-            if (user != null)
+            if (chatUser != null)
             {
-                if (loggedInUser != null && user != loggedInUser)
+                if (loggedInUser != null && chatUser != loggedInUser)
                 {
                     // Set an error message
                     authResult.Message = String.Format(LanguageResources.Account_AccountAlreadyLinked, authResult.ProviderName);
                     authResult.Success = false;
 
                     // Keep the old user logged in
-                    context.Identity.AddClaim(new Claim(JabbRClaimTypes.Identifier, loggedInUser.Id));
+                    ((ClaimsIdentity)user.Identity).AddClaim(new Claim(JabbRClaimTypes.Identifier, loggedInUser.Id));
                 }
                 else
                 {
                     // Login this user
-                    AddClaim(context, user);
+                    AddClaim(user, chatUser, properties);
                 }
-
             }
-            else if (principal.HasAllClaims())
+            else if (HasAllRequiredClaims(user))
             {
                 ChatUser targetUser = null;
 
@@ -76,14 +94,14 @@ namespace JabbR.Infrastructure
                 if (loggedInUser == null)
                 {
                     // New user so add them
-                    user = _membershipService.AddUser(principal);
+                    chatUser = _membershipService.AddUser(user);
 
-                    targetUser = user;
+                    targetUser = chatUser;
                 }
                 else
                 {
                     // If the user is logged in then link
-                    _membershipService.LinkIdentity(loggedInUser, principal);
+                    _membershipService.LinkIdentity(loggedInUser, user);
 
                     _repository.CommitChanges();
 
@@ -92,12 +110,12 @@ namespace JabbR.Infrastructure
                     targetUser = loggedInUser;
                 }
 
-                AddClaim(context, targetUser);
+                AddClaim(user, targetUser, properties);
             }
-            else if(!principal.HasPartialIdentity())
+            else if (!HasPartialIdentity(user))
             {
                 // A partial identity means the user needs to add more claims to login
-                context.Identity.AddClaim(new Claim(JabbRClaimTypes.PartialIdentity, "true"));
+                ((ClaimsIdentity)user.Identity).AddClaim(new Claim(JabbRClaimTypes.PartialIdentity, "true"));
             }
 
             var cookieOptions = new CookieOptions
@@ -105,12 +123,20 @@ namespace JabbR.Infrastructure
                 HttpOnly = true
             };
 
-            context.Response.Cookies.Append(Constants.AuthResultCookie,
+            _context.Response.Cookies.Append(Constants.AuthResultCookie,
                                        JsonConvert.SerializeObject(authResult),
                                        cookieOptions);
+
+            return Task.CompletedTask;
         }
 
-        private static void AddClaim(CookieResponseSignInContext context, ChatUser user)
+        public Task SignOutAsync(AuthenticationProperties properties)
+        {
+            // Implement sign out logic here
+            return Task.CompletedTask;
+        }
+
+        private static void AddClaim(ClaimsPrincipal principal, ChatUser user, AuthenticationProperties properties)
         {
             // Do nothing if the user is banned
             if (user.IsBanned)
@@ -119,42 +145,42 @@ namespace JabbR.Infrastructure
             }
 
             // Add the jabbr id claim
-            context.Identity.AddClaim(new Claim(JabbRClaimTypes.Identifier, user.Id));
+            ((ClaimsIdentity)principal.Identity).AddClaim(new Claim(JabbRClaimTypes.Identifier, user.Id));
 
             // Add the admin claim if the user is an Administrator
             if (user.IsAdmin)
             {
-                context.Identity.AddClaim(new Claim(JabbRClaimTypes.Admin, "true"));
+                ((ClaimsIdentity)principal.Identity).AddClaim(new Claim(JabbRClaimTypes.Admin, "true"));
             }
 
-            EnsurePersistentCookie(context);
+            EnsurePersistentCookie(properties);
         }
 
-        private static void EnsurePersistentCookie(CookieResponseSignInContext context)
+        private static void EnsurePersistentCookie(AuthenticationProperties properties)
         {
-            if (context.Properties == null)
+            if (properties == null)
             {
-                context.Properties = new AuthenticationProperties();
+                properties = new AuthenticationProperties();
             }
 
-            context.Properties.IsPersistent = true;
+            properties.IsPersistent = true;
         }
 
-        private ChatUser GetLoggedInUser(CookieResponseSignInContext context)
+        private ChatUser GetLoggedInUser(ClaimsPrincipal principal)
         {
-            var principal = context.Request.User as ClaimsPrincipal;
-
-            if (principal != null)
-            {
-                return _repository.GetLoggedInUser(principal);
-            }
-
-            return null;
+            return _repository.GetLoggedInUser(principal);
         }
 
-        public void ApplyRedirect(CookieApplyRedirectContext context)
+        private bool HasAllRequiredClaims(ClaimsPrincipal principal)
         {
-            context.Response.Redirect(context.RedirectUri);
+            // Implement the logic to check if the principal has all required claims
+            return true; // Placeholder
+        }
+
+        private bool HasPartialIdentity(ClaimsPrincipal principal)
+        {
+            // Implement the logic to check if the principal has a partial identity
+            return false; // Placeholder
         }
     }
 }
