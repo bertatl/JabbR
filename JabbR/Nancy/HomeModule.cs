@@ -13,6 +13,7 @@ using JabbR.UploadHandlers;
 using JabbR.ViewModels;
 using Microsoft.AspNet.SignalR.Infrastructure;
 using Nancy;
+using Nancy.Routing;
 
 namespace JabbR.Nancy
 {
