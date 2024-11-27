@@ -5,17 +5,18 @@ using System.Threading.Tasks;
 using JabbR.Models;
 using JabbR.Services;
 using Newtonsoft.Json;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
-
-using Microsoft.AspNetCore.Owin;
-
+using Microsoft.AspNetCore.Http;
 
 namespace JabbR.Infrastructure
 {
-    public class JabbRFormsAuthenticationProvider : ICookieAuthenticationProvider
+    public class JabbRFormsAuthenticationProvider : IAuthenticationSignInHandler
     {
         private readonly IJabbrRepository _repository;
         private readonly IMembershipService _membershipService;
+        private AuthenticationScheme _scheme;
+        private HttpContext _context;
 
         public JabbRFormsAuthenticationProvider(IJabbrRepository repository, IMembershipService membershipService)
         {
@@ -23,12 +24,32 @@ namespace JabbR.Infrastructure
             _membershipService = membershipService;
         }
 
-        public Task ValidateIdentity(CookieValidateIdentityContext context)
+        public Task InitializeAsync(AuthenticationScheme scheme, HttpContext context)
         {
-            return TaskAsyncHelper.Empty;
+            _scheme = scheme;
+            _context = context;
+            return Task.CompletedTask;
         }
 
-        public void ResponseSignIn(CookieResponseSignInContext context)
+        public Task<AuthenticateResult> AuthenticateAsync()
+        {
+            // Implement authentication logic here
+            return Task.FromResult(AuthenticateResult.NoResult());
+        }
+
+        public Task ChallengeAsync(AuthenticationProperties properties)
+        {
+            // Implement challenge logic here
+            return Task.CompletedTask;
+        }
+
+        public Task ForbidAsync(AuthenticationProperties properties)
+        {
+            // Implement forbid logic here
+            return Task.CompletedTask;
+        }
+
+        public Task SignInAsync(ClaimsPrincipal user, AuthenticationProperties properties)
         {
             var authResult = new AuthenticationResult
             {
@@ -152,9 +173,10 @@ namespace JabbR.Infrastructure
             return null;
         }
 
-        public void ApplyRedirect(CookieApplyRedirectContext context)
+        public Task SignOutAsync(AuthenticationProperties properties)
         {
-            context.Response.Redirect(context.RedirectUri);
+            // Implement sign out logic here
+            return Task.CompletedTask;
         }
     }
 }
