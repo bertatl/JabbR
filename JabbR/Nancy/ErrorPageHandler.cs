@@ -48,8 +48,8 @@ namespace JabbR.Nancy
                 SuggestRoomName = suggestRoomName
             }];
 
-            response.StatusCode = statusCode;
             context.Response = response;
+            context.Response.StatusCode = statusCode;
         }
     }
 }
