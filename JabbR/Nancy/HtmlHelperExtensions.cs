@@ -39,7 +39,7 @@ namespace JabbR
             checkBoxBuilder.Append(value.ToString().ToLowerInvariant());
             checkBoxBuilder.Append(@""" />");
 
-            return new NonEncodedHtmlString(checkBoxBuilder.ToString());
+            return new HtmlString(checkBoxBuilder.ToString());
         }
 
         public static IHtmlContent ValidationSummary<TModel>(this IHtmlHelper<TModel> htmlHelper)
@@ -94,7 +94,7 @@ namespace JabbR
                 builder.AppendFormat(message, messageDetail.Key, messageDetail.Value);
             }
 
-            return new NonEncodedHtmlString(builder.ToString());
+            return new HtmlString(builder.ToString());
         }
 
         internal static IEnumerable<string> GetErrorsForProperty<TModel>(this IHtmlHelper<TModel> htmlHelper,
@@ -129,7 +129,7 @@ namespace JabbR
             pagerBuilder.Append(@"</ul>");
             pagerBuilder.Append(@"</div>");
 
-            return new NonEncodedHtmlString(pagerBuilder.ToString());
+            return new HtmlString(pagerBuilder.ToString());
         }
 
         public static IHtmlContent DisplayNoneIf<TModel>(this IHtmlHelper<TModel> htmlHelper, Expression<Func<TModel, bool>> expression)
