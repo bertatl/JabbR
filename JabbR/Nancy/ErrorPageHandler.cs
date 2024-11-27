@@ -5,7 +5,6 @@ using JabbR.Services;
 using Nancy;
 using Nancy.ErrorHandling;
 using Nancy.ViewEngines;
-using Nancy.Responses.Negotiation;
 
 namespace JabbR.Nancy
 {
@@ -42,19 +41,15 @@ namespace JabbR.Nancy
                 }
             }
 
-            var viewModel = new
+            var response = _module.View["errorPage", new
             {
                 Error = statusCode,
                 ErrorCode = (int)statusCode,
                 SuggestRoomName = suggestRoomName
-            };
+            }];
 
-            var negotiator = new Negotiator(context)
-                .WithModel(viewModel)
-                .WithView("errorPage")
-                .WithStatusCode(statusCode);
-
-            context.Response = negotiator.WithAllowedMediaRange("text/html").Negotiate(context);
+            context.Response = response;
+            context.Response.StatusCode = statusCode;
         }
     }
 }
